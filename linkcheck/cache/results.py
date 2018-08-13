@@ -33,7 +33,7 @@ class ResultCache(object):
     format: {cache key (string) -> result (UrlData.towire())}
     """
 
-    def __init__(self, max_size=100000):
+    def __init__(self, max_size=10000000):
         """Initialize result cache."""
         # mapping {URL -> cached result}
         self.cache = {}
