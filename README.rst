@@ -28,11 +28,11 @@ Features
 Installation
 -------------
 
-See doc/install.txt in the source code archive.
+See doc/install.txt in the source code archive for general information. Except the given information there, please take note of the following:
 
 Python 2.7.2 or later is needed. It doesn't work with Python 3 yet, see `#40 <https://github.com/linkcheck/linkchecker/pull/40>`_ for details.
 
-``pip install linkchecker`` should NOT be used for now, as it will install the old version of linkchecker. See `#4 <https://github.com/linkcheck/linkchecker/pull/4>`_.
+The version in the pip repository is old. Instead, use the current git master version via `pip install git+https://github.com/linkchecker/linkchecker.git`. See `#4 <https://github.com/linkcheck/linkchecker/pull/4>`_.
 
 Windows builds are seriously lagging behind the Linux releases, see `#53 <https://github.com/linkchecker/linkchecker/issues/53>`_ for details. For now, the only two options are to install from source or use `Docker for Windows <https://www.docker.com/docker-windows>`_.
 
