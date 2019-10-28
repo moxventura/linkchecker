@@ -379,10 +379,10 @@ class _Logger (object):
         self.comment(_("created by %(app)s at %(time)s") %
                     {"app": configuration.AppName,
                      "time": strformat.strtime(self.starttime)})
-        self.comment(_("Get the newest version at %(url)s") %
-                     {'url': configuration.Url})
-        self.comment(_("Write comments and bugs to %(url)s") %
-                     {'url': configuration.SupportUrl})
+#        self.comment(_("Get the newest version at %(url)s") %
+#                     {'url': configuration.Url})
+#        self.comment(_("Write comments and bugs to %(url)s") %
+#                     {'url': configuration.SupportUrl})
         self.check_date()
 
     def write_outro (self):
