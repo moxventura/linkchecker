@@ -26,11 +26,7 @@ import requests
 import warnings
 warnings.simplefilter('ignore', requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    # Python 3
-    from io import StringIO
+from io import BytesIO
 
 from .. import (log, LOG_CHECK, strformat, mimeutil,
     url as urlutil, LinkCheckerError, httputil)
@@ -92,7 +88,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
             parser.encoding = self.charset
         # parse
         try:
-            parser.feed(self.get_content())
+            parser.feed(self.get_raw_content())
             parser.flush()
         except linkparse.StopParse as msg:
             log.debug(LOG_CHECK, "Stopped parsing: %s", msg)
@@ -196,7 +192,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         raw_connection = self.url_connection.raw._connection
         if not raw_connection:
             # this happens with newer requests versions:
-            # https://github.com/linkcheck/linkchecker/issues/76
+            # https://github.com/linkchecker/linkchecker/issues/76
             return None
         if raw_connection.sock is None:
             # sometimes the socket is not yet connected
@@ -316,7 +312,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         """Return data and data size for this URL.
         Can be overridden in subclasses."""
         maxbytes = self.aggregate.config["maxfilesizedownload"]
-        buf = StringIO()
+        buf = BytesIO()
         for data in self.url_connection.iter_content(chunk_size=self.ReadChunkBytes):
             if buf.tell() + len(data) > maxbytes:
                 raise LinkCheckerError(_("File size too large"))

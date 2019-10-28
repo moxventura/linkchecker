@@ -25,12 +25,16 @@ try:
 except ImportError:
     # Python 3
     from urllib import parse as urlparse
-import urllib
+try:  # Python 3
+    from urllib import request as urlrequest
+except ImportError:
+    import urllib as urlrequest
 try:
     from urllib2 import urlopen
 except ImportError:
     # Python 3
     from urllib.request import urlopen
+from builtins import str as str_text
 from datetime import datetime
 
 from . import urlbase, get_index_html
@@ -79,7 +83,7 @@ def get_os_filename (path):
     """Return filesystem path for given URL path."""
     if os.name == 'nt':
         path = prepare_urlpath_for_nt(path)
-    res = urllib.url2pathname(fileutil.pathencode(path))
+    res = urlrequest.url2pathname(fileutil.pathencode(path))
     if os.name == 'nt' and res.endswith(':') and len(res) == 2:
         # Work around http://bugs.python.org/issue11474
         res += os.sep
@@ -135,7 +139,10 @@ class FileUrl (urlbase.UrlBase):
             base_url = re.sub("^file://(/?)([a-zA-Z]):", r"file:///\2|", base_url)
             # transform file://path into file:///path
             base_url = re.sub("^file://([^/])", r"file:///\1", base_url)
-        self.base_url = unicode(base_url)
+        try:
+            self.base_url = unicode(base_url)
+        except NameError:
+            self.base_url = base_url
 
     def build_url (self):
         """
@@ -211,7 +218,7 @@ class FileUrl (urlbase.UrlBase):
         with links to the files."""
         if self.is_directory():
             data = get_index_html(get_files(self.get_os_filename()))
-            if isinstance(data, unicode):
+            if isinstance(data, str_text):
                 data = data.encode("iso8859-1", "ignore")
         else:
             data = super(FileUrl, self).read_content()

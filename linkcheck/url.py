@@ -28,6 +28,7 @@ except ImportError:  # Python 2
     import urlparse
 
 import requests
+from builtins import str as str_text
 
 from . import log, LOG_CHECK
 
@@ -178,7 +179,7 @@ def idna_encode (host):
     to RFC 3490.
     @raise: UnicodeError if hostname is not properly IDN encoded.
     """
-    if host and isinstance(host, unicode):
+    if host and isinstance(host, str_text):
         try:
             host.encode('ascii')
             return host, False
@@ -245,8 +246,9 @@ def url_fix_common_typos (url):
 
 def url_fix_mailto_urlsplit (urlparts):
     """Split query part of mailto url if found."""
-    if "?" in urlparts[2]:
-        urlparts[2], urlparts[3] = urlparts[2].split('?', 1)
+    sep = b"?" if isinstance(urlparts[2], bytes) else u"?"
+    if sep in urlparts[2]:
+        urlparts[2], urlparts[3] = urlparts[2].split(sep, 1)
 
 # wayback urls include in the path http[s]://. By default the
 # tidying mechanism in linkchecker encodes the : and deletes the second slash
@@ -258,10 +260,6 @@ def url_fix_wayback_query(path):
 
 def url_parse_query (query, encoding=None):
     """Parse and re-join the given CGI query."""
-    if isinstance(query, unicode):
-        if encoding is None:
-            encoding = url_encoding
-        query = query.encode(encoding, 'ignore')
     # if ? is in the query, split it off, seen at msdn.microsoft.com
     append = ""
     while '?' in query:
@@ -301,7 +299,7 @@ def url_norm (url, encoding=None):
     @return: (normed url, idna flag)
     @rtype: tuple of length two
     """
-    if isinstance(url, unicode):
+    if isinstance(url, str_text):
         # try to decode the URL to ascii since urllib.unquote()
         # handles non-unicode strings differently
         try:
@@ -346,7 +344,10 @@ def url_norm (url, encoding=None):
         # re-append trailing empty fragment
         res += '#'
     if encode_unicode:
-        res = unicode(res)
+        try:
+            res = unicode(res)
+        except NameError:
+            pass
     return (res, is_idn)
 
 
@@ -416,7 +417,7 @@ def url_quote (url):
 def url_quote_part (s, safechars='/', encoding=None):
     """Wrap urllib.quote() to support unicode strings. A unicode string
     is first converted to UTF-8. After that urllib.quote() is called."""
-    if isinstance(s, unicode):
+    if isinstance(s, str_text):
         if encoding is None:
             encoding = url_encoding
         s = s.encode(encoding, 'ignore')

@@ -46,7 +46,6 @@ AppInfo = App+u"              "+Copyright
 HtmlAppInfo = App+u", "+HtmlCopyright
 Url = configdata.url
 SupportUrl = u"https://github.com/linkchecker/linkchecker/issues"
-DonateUrl = u"http://wummel.github.io/linkchecker/donations.html"
 Email = configdata.author_email
 UserAgent = u"Mozilla/5.0 (compatible; %s/%s; +%s)" % (AppName, Version, Url)
 Freeware = AppName+u""" comes with ABSOLUTELY NO WARRANTY!
@@ -403,7 +402,7 @@ def make_userdir(child):
             # Windows forbids filenames with leading dot unless
             # a trailing dot is added.
             userdir += "."
-        os.makedirs(userdir, 0700)
+        os.makedirs(userdir, 0o700)
 
 
 def get_user_config():

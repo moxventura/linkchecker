@@ -17,10 +17,15 @@
 """
 Main functions for link parsing
 """
+import threading
+
 from .. import log, LOG_CHECK, strformat, url as urlutil
 from ..htmlutil import linkparse
 from ..HtmlParser import htmlsax
 from ..bookmarks import firefox
+
+# Is needed within find_links around non-threadsafe call
+parse_mutex = threading.Lock()
 
 
 def parse_url(url_data):
@@ -67,7 +72,7 @@ def parse_chromium (url_data):
 def parse_safari (url_data):
     """Parse a Safari bookmark file."""
     from ..bookmarks.safari import parse_bookmark_data
-    for url, name in parse_bookmark_data(url_data.get_content()):
+    for url, name in parse_bookmark_data(url_data.get_raw_content()):
         url_data.add_url(url, name=name)
 
 
@@ -125,8 +130,10 @@ def find_links (url_data, callback, tags):
     handler.parser = parser
     # parse
     try:
-        parser.feed(url_data.get_content())
-        parser.flush()
+        content = url_data.get_raw_content()
+        with parse_mutex:
+            parser.feed(content)
+            parser.flush()
     except linkparse.StopParse as msg:
         log.debug(LOG_CHECK, "Stopped parsing: %s", msg)
         pass

@@ -20,6 +20,7 @@ Test http checking.
 
 import pytest
 
+from tests import need_network
 from .httpserver import HttpServerTest, CookieRedirectHttpRequestHandler
 
 class TestHttp (HttpServerTest):
@@ -29,6 +30,7 @@ class TestHttp (HttpServerTest):
         super(TestHttp, self).__init__(methodName=methodName)
         self.handler = CookieRedirectHttpRequestHandler
 
+    @need_network
     def test_html (self):
         confargs = dict(recursionlevel=1)
         self.file_test("http.html", confargs=confargs)
@@ -37,6 +39,7 @@ class TestHttp (HttpServerTest):
         self.file_test("http_slash.html", confargs=confargs)
         self.file_test("http.xhtml", confargs=confargs)
         self.file_test("http_file.html", confargs=confargs)
+        self.file_test("http_utf8.html", confargs=confargs)
 
     def test_status(self):
         for status in sorted(self.handler.responses.keys()):
@@ -51,7 +54,7 @@ class TestHttp (HttpServerTest):
         ]
         if status in (204,):
             resultlines.append(u"warning No Content")
-        if (status != 101 and status < 200) or status >= 400:
+        if (status not in [101, 102] and status < 200) or status >= 400:
             result = u"error"
         else:
             result = u"valid"

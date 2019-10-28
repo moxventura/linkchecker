@@ -18,18 +18,20 @@
 Define http test support classes for LinkChecker tests.
 """
 
-import SimpleHTTPServer
-import BaseHTTPServer
-import httplib
+from html import escape as html_escape
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.client import HTTPConnection
 import time
 import threading
-import cgi
-import urllib
-from cStringIO import StringIO
+try:
+    from urllib import parse as urllib_parse
+except ImportError:
+    import urllib as urllib_parse
+from io import BytesIO
 from . import LinkCheckTest
 
 
-class StoppableHttpRequestHandler (SimpleHTTPServer.SimpleHTTPRequestHandler, object):
+class StoppableHttpRequestHandler (SimpleHTTPRequestHandler, object):
     """
     HTTP request handler with QUIT stopping the server.
     """
@@ -54,7 +56,7 @@ StoppableHttpRequestHandler.extensions_map.update({
 })
 
 
-class StoppableHttpServer (BaseHTTPServer.HTTPServer, object):
+class StoppableHttpServer (HTTPServer, object):
     """
     HTTP server that reacts to self.stop flag.
     """
@@ -99,7 +101,7 @@ class NoQueryHttpRequestHandler (StoppableHttpRequestHandler):
             self.send_response(status)
             self.end_headers()
             if  status >= 200 and status not in (204, 304):
-                self.wfile.write("testcontent")
+                self.wfile.write(b"testcontent")
         else:
             super(NoQueryHttpRequestHandler, self).do_GET()
 
@@ -122,17 +124,20 @@ class NoQueryHttpRequestHandler (StoppableHttpRequestHandler):
         interface the same as for send_head().
 
         """
-        f = StringIO()
-        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
-        f.write("<html>\n<title>Dummy directory listing</title>\n")
-        f.write("<body>\n<h2>Dummy test directory listing</h2>\n")
-        f.write("<hr>\n<ul>\n")
-        list = ["example1.txt", "example2.html", "example3"]
+        f = BytesIO()
+        f.write(b'<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
+        f.write(b"<html>\n<title>Dummy directory listing</title>\n")
+        f.write(b"<body>\n<h2>Dummy test directory listing</h2>\n")
+        f.write(b"<hr>\n<ul>\n")
+        list = [u"example1.txt", u"example2.html", u"example3"]
         for name in list:
             displayname = linkname = name
-            f.write('<li><a href="%s">%s</a>\n'
-                    % (urllib.quote(linkname), cgi.escape(displayname)))
-        f.write("</ul>\n<hr>\n</body>\n</html>\n")
+            list_item = (
+                u'<li><a href="%s">%s</a>\n'
+                % (urllib_parse.quote(linkname), html_escape(displayname))
+            )
+            f.write(list_item.encode())
+        f.write(b"</ul>\n<hr>\n</body>\n</html>\n")
         length = f.tell()
         f.seek(0)
         self.send_response(200)
@@ -182,7 +187,7 @@ def start_server (handler):
     # wait for server to start up
     while True:
         try:
-            conn = httplib.HTTPConnection("localhost:%d" % port)
+            conn = HTTPConnection("localhost:%d" % port)
             conn.request("GET", "/")
             conn.getresponse()
             break
@@ -193,7 +198,7 @@ def start_server (handler):
 
 def stop_server (port):
     """Stop an HTTP server thread."""
-    conn = httplib.HTTPConnection("localhost:%d" % port)
+    conn = HTTPConnection("localhost:%d" % port)
     conn.request("QUIT", "/")
     conn.getresponse()
 

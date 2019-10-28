@@ -18,7 +18,7 @@
 Functions used by the WSGI script.
 """
 
-import cgi
+from html import escape as html_escape
 import os
 import threading
 import locale
@@ -32,6 +32,7 @@ except ImportError:
 from . import configuration, strformat, checker, director, get_link_pat, \
     init_i18n, url as urlutil
 from .decorators import synchronized
+from builtins import str as str_text
 
 # 5 minutes timeout for requests
 MAX_REQUEST_SECONDS = 300
@@ -54,7 +55,7 @@ def application(environ, start_response):
         request_body = environ['wsgi.input'].read(request_body_size)
     else:
         request_body = environ['wsgi.input'].read()
-    form = cgi.parse_qs(request_body)
+    form = urlparse.parse_qs(request_body.decode(HTML_ENCODING))
 
     status = '200 OK'
     start_response(status, get_response_headers())
@@ -104,7 +105,7 @@ class ThreadsafeIO (object):
     @synchronized(_lock)
     def write (self, data):
         """Write given unicode data to buffer."""
-        assert isinstance(data, unicode)
+        assert isinstance(data, str_text)
         if self.closed:
             raise IOError("Write on closed I/O object")
         if data:
@@ -135,9 +136,9 @@ def checklink (form=None, env=os.environ):
         form = {}
     try:
         checkform(form, env)
-    except LCFormError as errmsg:
-        log(env, errmsg)
-        yield encode(format_error(errmsg))
+    except LCFormError as err:
+        log(env, err)
+        yield encode(format_error(str(err)))
         return
     out = ThreadsafeIO()
     config = get_configuration(form, out)
@@ -233,7 +234,7 @@ def checkform (form, env):
 def log (env, msg):
     """Log message to WSGI error output."""
     logfile = env['wsgi.errors']
-    logfile.write(msg + "\n")
+    logfile.write("%s\n" % msg)
 
 
 def dump (env, form):
@@ -264,4 +265,4 @@ contains only these characters: <code>A-Za-z0-9./_~-</code><br/><br/>
 Errors are logged.
 </blockquote>
 </body>
-</html>""") % cgi.escape(why)
+</html>""") % html_escape(why)

@@ -179,7 +179,7 @@ class MyInstallData (install_data, object):
 
     def install_translations (self):
         """Install compiled gettext catalogs."""
-        # A hack to fix https://github.com/linkcheck/linkchecker/issues/102
+        # A hack to fix https://github.com/linkchecker/linkchecker/issues/102
         i18n_files = []
         data_files = []
         for dir, files in self.data_files:
@@ -440,7 +440,7 @@ args = dict(
     author_email = myemail,
     maintainer = myname,
     maintainer_email = myemail,
-    url = "http://wummel.github.io/linkchecker/",
+    url = "https://linkchecker.github.io/linkchecker/",
     license = "GPL",
     long_description = get_long_description(),
     distclass = MyDistribution,
@@ -479,14 +479,6 @@ args = dict(
             define_macros = define_macros + [('YY_NO_INPUT', None)],
             include_dirs = include_dirs + [normpath("linkcheck/HtmlParser")],
         ),
-        Extension("linkcheck.network._network",
-            sources = ["linkcheck/network/_network.c"],
-            extra_compile_args = extra_compile_args,
-            library_dirs = library_dirs,
-            libraries = libraries,
-            define_macros = define_macros,
-            include_dirs = include_dirs,
-        ),
     ],
     scripts = scripts,
     data_files = data_files,
@@ -501,9 +493,11 @@ args = dict(
     },
     # Requirements, usable with setuptools or the new Python packaging module.
     install_requires = [
-        'requests<2.15,>=2.4',
+        'requests >= 2.4',
         'dnspython',
+        'bs4',
         'pyxdg',
+        'future',
     ],
     # Commented out since they are untested and not officially supported.
     # See also doc/install.txt for more detailed dependency documentation.

@@ -27,6 +27,7 @@ import linkcheck.configuration
 import linkcheck.director
 import linkcheck.logger
 from .. import get_file
+from builtins import str as str_text
 
 # helper alias
 get_url_from = linkcheck.checker.get_url_from
@@ -36,6 +37,9 @@ class TestLogger (linkcheck.logger._Logger):
     """
     Output logger for automatic regression tests.
     """
+    
+    # don't attempt to collect this class because it has an __init__()
+    __test__ = False
 
     LoggerName = 'test'
 
@@ -64,6 +68,11 @@ class TestLogger (linkcheck.logger._Logger):
         self.result = []
         # diff between expected and real output
         self.diff = []
+
+    def normalize(self, result_log):
+        # XXX we assume that each log entry has a URL key, maybe we should add an assert into log_url() to that effect?
+        sep = '\nurl '
+        return sep.join(sorted('\n'.join(result_log).split(sep))).splitlines()
 
     def start_output (self):
         """
@@ -119,11 +128,13 @@ class TestLogger (linkcheck.logger._Logger):
         """
         Stores differences between expected and result in self.diff.
         """
+        self.expected = self.normalize(self.expected)
+        self.result = self.normalize(self.result)
         for line in difflib.unified_diff(self.expected, self.result):
-            if not isinstance(line, unicode):
+            if not isinstance(line, str_text):
                 # The ---, +++ and @@ lines from diff format are ascii encoded.
                 # Make them unicode.
-                line = unicode(line, "ascii", "replace")
+                line = str_text(line, "ascii", "replace")
             self.diff.append(line)
 
 
@@ -220,21 +231,26 @@ class LinkCheckTest (unittest.TestCase):
         url_data = get_url_from(url, 0, aggregate, extern=(0, 0))
         aggregate.urlqueue.put(url_data)
         linkcheck.director.check_urls(aggregate)
-        diff = aggregate.config['logger'].diff
+        logger = aggregate.config['logger']
+        diff = logger.diff
         if diff:
-            msg = unicode(os.linesep).join([url] + diff)
+            msg = str_text(os.linesep).join([url] + diff)
             self.fail_unicode(msg)
+        if logger.stats.internal_errors:
+            self.fail_unicode("%d internal errors occurred!"
+                              % logger.stats.internal_errors)
 
     def fail_unicode (self, msg):
         """Print encoded fail message."""
-        # XXX self.fail() only supports ascii
-        msg = msg.encode("ascii", "replace")
+        # XXX self.fail() only supports ascii on Python 2
+        if not isinstance(msg, str) and isinstance(msg, str_text):  # this can be true only on Python 2
+            msg = msg.encode("ascii", "backslashreplace")
         self.fail(msg)
 
     def direct (self, url, resultlines, parts=None, recursionlevel=0,
                 confargs=None):
         """Check url with expected result."""
-        assert isinstance(url, unicode), repr(url)
+        assert isinstance(url, str_text), repr(url)
         if confargs is None:
             confargs = {'recursionlevel': recursionlevel}
         else:
@@ -252,7 +268,7 @@ class LinkCheckTest (unittest.TestCase):
         if diff:
             l = [u"Differences found testing %s" % url]
             l.extend(x.rstrip() for x in diff[2:])
-            self.fail_unicode(unicode(os.linesep).join(l))
+            self.fail_unicode(str_text(os.linesep).join(l))
 
 
 class MailTest (LinkCheckTest):

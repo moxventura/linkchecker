@@ -19,7 +19,10 @@ A CSV logger.
 """
 import csv
 import os
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError: # Python 3
+    from io import StringIO
 from . import _Logger
 from .. import strformat
 
@@ -119,15 +122,25 @@ class CSVLogger (_Logger):
         self.writerow(map(strformat.unicode_safe, row))
         self.flush()
 
+    def encode_row_s(self, row_s):
+        if isinstance(row_s, str):
+            return row_s  # Python 3
+        else:
+            return row_s.encode("utf-8", self.codec_errors)  # Python 2
+
     def writerow (self, row):
         """Write one row in CSV format."""
-        self.writer.writerow([s.encode("utf-8", self.codec_errors) for s in row])
+        self.writer.writerow([self.encode_row_s(s) for s in row])
         # Fetch UTF-8 output from the queue ...
         data = self.queue.getvalue()
-        data = data.decode("utf-8")
+        try:
+            data = data.decode("utf-8")
+        except AttributeError:
+            pass
         # ... and write to the target stream
         self.write(data)
         # empty queue
+        self.queue.seek(0)
         self.queue.truncate(0)
 
     def end_output (self, **kwargs):

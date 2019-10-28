@@ -42,6 +42,8 @@ import locale
 import pydoc
 from . import i18n
 
+from builtins import str as str_text
+
 
 def unicode_safe (s, encoding=i18n.default_encoding, errors='replace'):
     """Get unicode string without raising encoding errors. Unknown
@@ -54,10 +56,16 @@ def unicode_safe (s, encoding=i18n.default_encoding, errors='replace'):
     @rtype: unicode
     """
     assert s is not None, "argument to unicode_safe was None"
-    if isinstance(s, unicode):
+    if isinstance(s, str_text):
         # s is already unicode, nothing to do
         return s
-    return unicode(str(s), encoding, errors)
+
+    try:
+        return unicode(str(s), encoding, errors)
+    except NameError:  # Python3
+        if isinstance(s, bytes):
+            return s.decode(encoding, errors)
+        return str(s)
 
 
 def ascii_safe (s):
@@ -69,7 +77,7 @@ def ascii_safe (s):
     @return: encoded ASCII version of s, or None if s was None
     @rtype: string
     """
-    if isinstance(s, unicode):
+    if isinstance(s, str_text):
         s = s.encode('ascii', 'ignore')
     return s
 
@@ -150,7 +158,7 @@ def wrap (text, width, **kwargs):
 
 def indent (text, indent_string="  "):
     """Indent each line of text with the given indent string."""
-    lines = str(text).splitlines()
+    lines = str_text(text).splitlines()
     return os.linesep.join("%s%s" % (indent_string, x) for x in lines)
 
 
@@ -190,18 +198,18 @@ def strsize (b, grouping=True):
     if b < 0:
         raise ValueError("Invalid negative byte number")
     if b < 1024:
-        return u"%sB" % locale.format("%d", b, grouping)
+        return u"%sB" % locale.format_string("%d", b, grouping)
     if b < 1024 * 10:
-        return u"%sKB" % locale.format("%d", (b // 1024), grouping)
+        return u"%sKB" % locale.format_string("%d", (b // 1024), grouping)
     if b < 1024 * 1024:
-        return u"%sKB" % locale.format("%.2f", (float(b) / 1024), grouping)
+        return u"%sKB" % locale.format_string("%.2f", (float(b) / 1024), grouping)
     if b < 1024 * 1024 * 10:
-        return u"%sMB" % locale.format("%.2f", (float(b) / (1024*1024)), grouping)
+        return u"%sMB" % locale.format_string("%.2f", (float(b) / (1024*1024)), grouping)
     if b < 1024 * 1024 * 1024:
-        return u"%sMB" % locale.format("%.1f", (float(b) / (1024*1024)), grouping)
+        return u"%sMB" % locale.format_string("%.1f", (float(b) / (1024*1024)), grouping)
     if b < 1024 * 1024 * 1024 * 10:
-        return u"%sGB" % locale.format("%.2f", (float(b) / (1024*1024*1024)), grouping)
-    return u"%sGB" % locale.format("%.1f", (float(b) / (1024*1024*1024)), grouping)
+        return u"%sGB" % locale.format_string("%.2f", (float(b) / (1024*1024*1024)), grouping)
+    return u"%sGB" % locale.format_string("%.1f", (float(b) / (1024*1024*1024)), grouping)
 
 
 def strtime (t, func=time.localtime):
@@ -314,7 +322,11 @@ def limit (s, length=72):
 
 def strline (s):
     """Display string representation on one line."""
-    return strip_control_chars(u"`%s'" % unicode(s).replace(u"\n", u"\\n"))
+    try:
+        s = unicode(s)
+    except NameError:
+        pass
+    return strip_control_chars(u"`%s'" % s.replace(u"\n", u"\\n"))
 
 
 def format_feature_warning (**kwargs):

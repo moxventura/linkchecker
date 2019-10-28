@@ -21,9 +21,9 @@ Find link tags in HTML text.
 import re
 from .. import strformat, log, LOG_CHECK, url as urlutil
 from . import linkname
+from builtins import str as str_text
 
 MAX_NAMELEN = 256
-MAX_TITLELEN = 256
 
 unquote = strformat.unquote
 
@@ -82,11 +82,11 @@ WmlTags = {
 
 
 # matcher for <meta http-equiv=refresh> tags
-refresh_re = re.compile(ur"(?i)^\d+;\s*url=(?P<url>.+)$")
-_quoted_pat = ur"('[^']+'|\"[^\"]+\"|[^\)\s]+)"
-css_url_re = re.compile(ur"url\(\s*(?P<url>%s)\s*\)" % _quoted_pat)
+refresh_re = re.compile(r"(?i)^\d+;\s*url=(?P<url>.+)$")
+_quoted_pat = r"('[^']+'|\"[^\"]+\"|[^\)\s]+)"
+css_url_re = re.compile(r"url\(\s*(?P<url>%s)\s*\)" % _quoted_pat)
 swf_url_re = re.compile("(?i)%s" % urlutil.safe_url_pattern)
-c_comment_re = re.compile(ur"/\*.*?\*/", re.DOTALL)
+c_comment_re = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
 def strip_c_comments (text):
@@ -98,26 +98,6 @@ def strip_c_comments (text):
 class StopParse(Exception):
     """Raised when parsing should stop."""
     pass
-
-
-class TitleFinder (object):
-    """Find title tags in HTML text."""
-
-    def __init__ (self):
-        """Initialize title."""
-        super(TitleFinder, self).__init__()
-        log.debug(LOG_CHECK, "HTML title parser")
-        self.title = None
-
-    def start_element (self, tag, attrs):
-        """Search for <title> tag."""
-        if tag == 'title':
-            data = self.parser.peek(MAX_TITLELEN)
-            data = data.decode(self.parser.encoding, "ignore")
-            self.title = linkname.title_name(data)
-            raise StopParse("found <title> tag")
-        elif tag == 'body':
-            raise StopParse("found <body> tag")
 
 
 class TagFinder (object):
@@ -250,11 +230,11 @@ class LinkFinder (TagFinder):
 
     def parse_tag (self, tag, attr, value, name, base):
         """Add given url data to url list."""
-        assert isinstance(tag, unicode), repr(tag)
-        assert isinstance(attr, unicode), repr(attr)
-        assert isinstance(name, unicode), repr(name)
-        assert isinstance(base, unicode), repr(base)
-        assert isinstance(value, unicode) or value is None, repr(value)
+        assert isinstance(tag, str_text), repr(tag)
+        assert isinstance(attr, str_text), repr(attr)
+        assert isinstance(name, str_text), repr(name)
+        assert isinstance(base, str_text), repr(base)
+        assert isinstance(value, str_text) or value is None, repr(value)
         # look for meta refresh
         if tag == u'meta' and value:
             mo = refresh_re.match(value)
@@ -278,6 +258,6 @@ class LinkFinder (TagFinder):
 
     def found_url(self, url, name, base):
         """Add newly found URL to queue."""
-        assert isinstance(url, unicode) or url is None, repr(url)
+        assert isinstance(url, str_text) or url is None, repr(url)
         self.callback(url, line=self.parser.last_lineno(),
                       column=self.parser.last_column(), name=name, base=base)

@@ -24,6 +24,10 @@ try:
 except ImportError:
     # Python 3
     from urllib import parse as urlparse
+try:  # Python 3
+    from urllib import parse as urllib_parse
+except ImportError:
+    import urllib as urllib_parse
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -34,11 +38,16 @@ import time
 import errno
 import socket
 import select
-try:
-    from cStringIO import StringIO
-except ImportError:
-    # Python 3
-    from io import StringIO
+from io import BytesIO
+from builtins import str as str_text
+from future.utils import python_2_unicode_compatible
+from warnings import filterwarnings
+
+filterwarnings("ignore",
+    message="The soupsieve package is not installed. CSS selectors cannot be used.",
+    category=UserWarning, module="bs4")
+
+from bs4 import BeautifulSoup
 
 from . import absolute_url, get_url_from
 from .. import (log, LOG_CHECK,
@@ -79,6 +88,7 @@ def url_norm (url, encoding=None):
         raise LinkCheckerError(msg)
 
 
+@python_2_unicode_compatible
 class UrlBase (object):
     """An URL with additional information like validity etc."""
 
@@ -145,20 +155,20 @@ class UrlBase (object):
         """
         self.base_ref = base_ref
         if self.base_ref is not None:
-            assert isinstance(self.base_ref, unicode), repr(self.base_ref)
+            assert isinstance(self.base_ref, str_text), repr(self.base_ref)
         self.base_url = base_url.strip() if base_url else base_url
         if self.base_url is not None:
-            assert isinstance(self.base_url, unicode), repr(self.base_url)
+            assert isinstance(self.base_url, str_text), repr(self.base_url)
         self.parent_url = parent_url
         if self.parent_url is not None:
-            assert isinstance(self.parent_url, unicode), repr(self.parent_url)
+            assert isinstance(self.parent_url, str_text), repr(self.parent_url)
         self.recursion_level = recursion_level
         self.aggregate = aggregate
         self.line = line
         self.column = column
         self.page = page
         self.name = name
-        assert isinstance(self.name, unicode), repr(self.name)
+        assert isinstance(self.name, str_text), repr(self.name)
         self.encoding = url_encoding
         self.charset = None
         self.extern = extern
@@ -209,6 +219,8 @@ class UrlBase (object):
         self.url_connection = None
         # data of url content,  (data == None) means no data is available
         self.data = None
+        # url content as a Unicode string
+        self.text = None
         # cache url is set by build_url() calling set_cache_url()
         self.cache_url = None
         # extern flags (is_extern, is_strict)
@@ -233,7 +245,7 @@ class UrlBase (object):
               "Double result %r (previous %r) for %s", msg, self.result, self)
         else:
             self.has_result = True
-        if not isinstance(msg, unicode):
+        if not isinstance(msg, str_text):
             log.warn(LOG_CHECK, "Non-unicode result for %s: %r", self, msg)
         elif not msg:
             log.warn(LOG_CHECK, "Empty result for %s", self)
@@ -317,7 +329,7 @@ class UrlBase (object):
         # URLs with different anchors to have the same content
         self.cache_url = urlutil.urlunsplit(self.urlparts[:4]+[u''])
         if self.cache_url is not None:
-            assert isinstance(self.cache_url, unicode), repr(self.cache_url)
+            assert isinstance(self.cache_url, str_text), repr(self.cache_url)
 
     def check_syntax (self):
         """
@@ -392,7 +404,7 @@ class UrlBase (object):
         Also checks for obfuscated IP addresses.
         """
         # check userinfo@host:port syntax
-        self.userinfo, host = urllib.splituser(self.urlparts[1])
+        self.userinfo, host = urllib_parse.splituser(self.urlparts[1])
         port = urlutil.default_ports.get(self.scheme, 0)
         host, port = urlutil.splitport(host, port=port)
         if port is None:
@@ -416,7 +428,7 @@ class UrlBase (object):
         # safe anchor for later checking
         self.anchor = self.urlparts[4]
         if self.anchor is not None:
-            assert isinstance(self.anchor, unicode), repr(self.anchor)
+            assert isinstance(self.anchor, str_text), repr(self.anchor)
 
     def check_obfuscated_ip (self):
         """Warn if host of this URL is obfuscated IP address."""
@@ -448,7 +460,7 @@ class UrlBase (object):
 
     def local_check (self):
         """Local check function can be overridden in subclasses."""
-        log.debug(LOG_CHECK, "Checking %s", unicode(self))
+        log.debug(LOG_CHECK, "Checking %s", str_text(self))
         # strict extern URLs should not be checked
         assert not self.extern[1], 'checking strict extern URL'
         # check connection
@@ -465,7 +477,7 @@ class UrlBase (object):
                 value = _('Hostname not found')
             elif isinstance(exc, UnicodeError):
                 # idna.encode(host) failed
-                value = _('Bad hostname %(host)r: %(msg)s') % {'host': self.host, 'msg': str(value)}
+                value = _('Bad hostname %(host)r: %(msg)s') % {'host': self.host, 'msg': str_text(value)}
             self.set_result(unicode_safe(value), valid=False)
 
     def check_content(self):
@@ -482,7 +494,7 @@ class UrlBase (object):
             except tuple(ExcList):
                 value = self.handle_exception()
                 self.add_warning(_("could not get content: %(msg)s") %
-                     {"msg": str(value)}, tag=WARN_URL_ERROR_GETTING_CONTENT)
+                     {"msg": str_text(value)}, tag=WARN_URL_ERROR_GETTING_CONTENT)
         return False
 
     def close_connection (self):
@@ -512,7 +524,7 @@ class UrlBase (object):
             # EBADF occurs when operating on an already socket
             self.caching = False
         # format unicode message "<exception name>: <error message>"
-        errmsg = unicode(etype.__name__)
+        errmsg = str_text(etype.__name__)
         uvalue = strformat.unicode_safe(evalue)
         if uvalue:
             errmsg += u": %s" % uvalue
@@ -618,24 +630,35 @@ class UrlBase (object):
         """Indicate wether url get_content() can be called."""
         return self.size <= self.aggregate.config["maxfilesizedownload"]
 
-    def get_content (self):
-        """Precondition: url_connection is an opened URL."""
-        if self.data is None:
-            log.debug(LOG_CHECK, "Get content of %r", self.url)
-            t = time.time()
-            self.data = self.read_content()
-            self.size = len(self.data)
-            self.dltime = time.time() - t
-            if self.size == 0:
-                self.add_warning(_("Content size is zero."),
+    def download_content(self):
+        log.debug(LOG_CHECK, "Get content of %r", self.url)
+        t = time.time()
+        content = self.read_content()
+        self.size = len(content)
+        self.dltime = time.time() - t
+        if self.size == 0:
+            self.add_warning(_("Content size is zero."),
                              tag=WARN_URL_CONTENT_SIZE_ZERO)
-            else:
-                self.aggregate.add_downloaded_bytes(self.size)
+        else:
+            self.aggregate.add_downloaded_bytes(self.size)
+        return content
+
+    def get_raw_content(self):
+        if self.data is None:
+            self.data = self.download_content()
         return self.data
+
+    def get_content (self):
+        if self.text is None:
+            self.get_raw_content()
+            soup = BeautifulSoup(self.data, "html.parser")
+            self.text = self.data.decode(soup.original_encoding)
+            self.encoding = soup.original_encoding
+        return self.text
 
     def read_content(self):
         """Return data for this URL. Can be overridden in subclasses."""
-        buf = StringIO()
+        buf = BytesIO()
         data = self.read_content_chunk()
         while data:
             if buf.tell() + len(data) > self.aggregate.config["maxfilesizedownload"]:
@@ -645,7 +668,9 @@ class UrlBase (object):
         return buf.getvalue()
 
     def read_content_chunk(self):
-        """Read one chunk of content from this URL."""
+        """Read one chunk of content from this URL.
+        Precondition: url_connection is an opened URL.
+        """
         return self.url_connection.read(self.ReadChunkBytes)
 
     def get_user_password (self):
@@ -654,7 +679,7 @@ class UrlBase (object):
         """
         if self.userinfo:
             # URL itself has authentication info
-            return urllib.splitpasswd(self.userinfo)
+            return urllib_parse.splitpasswd(self.userinfo)
         return self.aggregate.config.get_user_password(self.url)
 
     def add_url (self, url, line=0, column=0, page=0, name=u"", base=None):
@@ -709,7 +734,7 @@ class UrlBase (object):
                 {"domain": msg}
             self.set_result(res, valid=False)
 
-    def __unicode__(self):
+    def __str__(self):
         """
         Get URL info.
 
@@ -718,14 +743,14 @@ class UrlBase (object):
         """
         return self.serialized()
 
-    def __str__(self):
+    def __bytes__(self):
         """
         Get URL info.
 
         @return: URL info, encoded with the output logger encoding
         @rtype: string
         """
-        s = unicode(self)
+        s = str_text(self)
         return self.aggregate.config['logger'].encode(s)
 
     def __repr__ (self):

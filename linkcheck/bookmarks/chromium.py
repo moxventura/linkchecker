@@ -18,7 +18,7 @@
 import os
 import sys
 import json
-from xdg import xdg_config_home
+from xdg.BaseDirectory import xdg_config_home
 
 
 # Windows filename encoding
