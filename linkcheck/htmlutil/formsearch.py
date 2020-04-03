@@ -33,16 +33,8 @@ class Form(object):
         self.data[key] = value
 
     def __repr__(self):
-        """Return unicode representation displaying URL and form data."""
-        return unicode(self)
-
-    def __unicode__(self):
-        """Return unicode string displaying URL and form data."""
-        return u"<url=%s data=%s>" % (self.url, self.data)
-
-    def __str__(self):
         """Return string displaying URL and form data."""
-        return unicode(self).encode('utf-8')
+        return "<url=%s data=%s>" % (self.url, self.data)
 
 
 class FormFinder(object):
@@ -89,14 +81,13 @@ class FormFinder(object):
             self.form = None
 
 
-def search_form(content, cgiuser, cgipassword, encoding='utf-8'):
+def search_form(content, cgiuser, cgipassword):
     """Search for a HTML form in the given HTML content that has the given
     CGI fields. If no form is found return None.
     """
     handler = FormFinder()
     parser = htmlsax.parser(handler)
     handler.parser = parser
-    parser.encoding = encoding
     # parse
     parser.feed(content)
     parser.flush()
