@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -28,33 +27,33 @@ def encode(s, encoding="iso-8859-1", errors="ignore"):
     return s.encode(encoding, errors)
 
 
-class TelnetUrl (urlbase.UrlBase):
+class TelnetUrl(urlbase.UrlBase):
     """
     Url link with telnet scheme.
     """
 
-    def build_url (self):
+    def build_url(self):
         """
         Call super.build_url(), set default telnet port and initialize
         the login credentials.
         """
-        super(TelnetUrl, self).build_url()
+        super().build_url()
         # default port
         if self.port is None:
             self.port = 23
         # set user/pass
         self.user, self.password = self.get_user_password()
 
-    def local_check (self):
+    def local_check(self):
         """
         Warn about empty host names. Else call super.local_check().
         """
         if not self.host:
             self.set_result(_("Host is empty"), valid=False)
             return
-        super(TelnetUrl, self).local_check()
+        super().local_check()
 
-    def check_connection (self):
+    def check_connection(self):
         """
         Open a telnet connection and try to login. Expected login
         label is "login: ", expected password label is "Password: ".
@@ -65,14 +64,14 @@ class TelnetUrl (urlbase.UrlBase):
         self.url_connection.open(self.host, self.port)
         if self.user:
             self.url_connection.read_until(b"login: ", 10)
-            self.url_connection.write(encode(self.user)+b"\n")
+            self.url_connection.write(encode(self.user) + b"\n")
             if self.password:
                 self.url_connection.read_until(b"Password: ", 10)
-                self.url_connection.write(encode(self.password)+b"\n")
+                self.url_connection.write(encode(self.password) + b"\n")
                 # XXX how to tell if we are logged in??
         self.url_connection.write(b"exit\n")
 
-    def can_get_content (self):
+    def can_get_content(self):
         """
         Telnet URLs have no content.
 

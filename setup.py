@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: iso-8859-1 -*-
+#!/usr/bin/python3
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -20,7 +19,6 @@ Setup file for the distuils module.
 
 It includes the following features:
 - creation and installation of configuration files with installation data
-- automatic MANIFEST.in check
 - automatic generation of .mo locale files
 - automatic permission setting on POSIX systems for installed files
 
@@ -28,7 +26,8 @@ Because of all the features, this script is nasty and big.
 Change it very carefully.
 """
 import sys
-if sys.version_info < (3, 5, 0, 'final', 0):
+
+if sys.version_info < (3, 5, 0, "final", 0):
     raise SystemExit("This program requires Python 3.5 or later.")
 import os
 import re
@@ -36,40 +35,40 @@ import stat
 import glob
 
 # import Distutils stuff
-from setuptools import setup
+from setuptools import find_packages, setup
 from distutils.command.install_lib import install_lib
-from distutils.command.sdist import sdist
 from distutils.command.clean import clean
 from distutils.command.install_data import install_data
 from distutils.dir_util import remove_tree
 from distutils.file_util import write_file
 from distutils import util, log
 from distutils.core import Distribution
-from distutils.command.build import build
 
 # the application version
-AppVersion = "9.4.0"
+AppVersion = "10.0.0.dev0"
 # the application name
 AppName = "LinkChecker"
 Description = "check links in web documents or full websites"
 
+
 def get_long_description():
     """Try to read long description from README.rst."""
     try:
-        with open('README.rst') as f:
+        with open("README.rst") as f:
             return f.read()
-    except:
+    except Exception:
         return Description
 
-def normpath (path):
+
+def normpath(path):
     """Norm a path name to platform specific notation."""
     return os.path.normpath(path)
 
 
-def cnormpath (path):
+def cnormpath(path):
     """Norm a path name to platform specific notation and make it absolute."""
     path = normpath(path)
-    if os.name == 'nt':
+    if os.name == "nt":
         # replace slashes with backslashes
         path = path.replace("/", "\\")
     if not os.path.isabs(path):
@@ -78,7 +77,9 @@ def cnormpath (path):
 
 
 release_ro = re.compile(r"\(released (.+)\)")
-def get_release_date ():
+
+
+def get_release_date():
     """Parse and return relase date as string from doc/changelog.txt."""
     fname = os.path.join("doc", "changelog.txt")
     release_date = "unknown"
@@ -93,22 +94,22 @@ def get_release_date ():
 
 def get_portable():
     """Return portable flag as string."""
-    return os.environ.get('LINKCHECKER_PORTABLE', '0')
+    return os.environ.get("LINKCHECKER_PORTABLE", "0")
 
 
-class MyInstallLib (install_lib):
+class MyInstallLib(install_lib):
     """Custom library installation."""
 
-    def install (self):
+    def install(self):
         """Install the generated config file."""
-        outs = super(MyInstallLib, self).install()
+        outs = super().install()
         infile = self.create_conf_file()
         outfile = os.path.join(self.install_dir, os.path.basename(infile))
         self.copy_file(infile, outfile)
         outs.append(outfile)
         return outs
 
-    def create_conf_file (self):
+    def create_conf_file(self):
         """Create configuration file."""
         cmd_obj = self.distribution.get_command_obj("install")
         cmd_obj.ensure_finalized()
@@ -116,8 +117,8 @@ class MyInstallLib (install_lib):
         # <install_data> directory (and other stuff like author, url, ...)
         # all paths are made absolute by cnormpath()
         data = []
-        for d in ['purelib', 'platlib', 'lib', 'headers', 'scripts', 'data']:
-            attr = 'install_%s' % d
+        for d in ["purelib", "platlib", "lib", "headers", "scripts", "data"]:
+            attr = "install_%s" % d
             if cmd_obj.root:
                 # cut off root path prefix
                 cutoff = len(cmd_obj.root)
@@ -127,10 +128,10 @@ class MyInstallLib (install_lib):
                 val = getattr(cmd_obj, attr)[cutoff:]
             else:
                 val = getattr(cmd_obj, attr)
-            if attr == 'install_data':
+            if attr == "install_data":
                 cdir = os.path.join(val, "share", "linkchecker")
-                data.append('config_dir = %r' % cnormpath(cdir))
-            elif attr == 'install_lib':
+                data.append("config_dir = %r" % cnormpath(cdir))
+            elif attr == "install_lib":
                 if cmd_obj.root:
                     _drive, tail = os.path.splitdrive(val)
                     if tail.startswith(os.sep):
@@ -142,13 +143,13 @@ class MyInstallLib (install_lib):
         self.distribution.create_conf_file(data, directory=self.install_lib)
         return self.get_conf_output()
 
-    def get_conf_output (self):
+    def get_conf_output(self):
         """Get name of configuration file."""
         return self.distribution.get_conf_filename(self.install_lib)
 
-    def get_outputs (self):
+    def get_outputs(self):
         """Add the generated config file to the list of outputs."""
-        outs = super(MyInstallLib, self).get_outputs()
+        outs = super().get_outputs()
         conf_output = self.get_conf_output()
         outs.append(conf_output)
         if self.compile:
@@ -156,22 +157,22 @@ class MyInstallLib (install_lib):
         return outs
 
 
-class MyInstallData (install_data):
+class MyInstallData(install_data):
     """Fix file permissions."""
 
-    def run (self):
+    def run(self):
         """Adjust permissions on POSIX systems."""
         self.install_translations()
-        super(MyInstallData, self).run()
+        super().run()
         self.fix_permissions()
 
-    def install_translations (self):
+    def install_translations(self):
         """Install compiled gettext catalogs."""
         # A hack to fix https://github.com/linkchecker/linkchecker/issues/102
         i18n_files = []
         data_files = []
         for dir, files in self.data_files:
-            if 'LC_MESSAGES' in dir:
+            if "LC_MESSAGES" in dir:
                 i18n_files.append((dir, files))
             else:
                 data_files.append((dir, files))
@@ -192,10 +193,10 @@ class MyInstallData (install_data):
                 (out, _) = self.copy_file(data, dest)
                 self.outfiles.append(out)
 
-    def fix_permissions (self):
+    def fix_permissions(self):
         """Set correct read permissions on POSIX systems. Might also
         be possible by setting umask?"""
-        if os.name == 'posix' and not self.dry_run:
+        if os.name == "posix" and not self.dry_run:
             # Make the data files we just installed world-readable,
             # and the directories world-executable as well.
             for path in self.get_outputs():
@@ -206,29 +207,29 @@ class MyInstallData (install_data):
                 os.chmod(path, mode)
 
 
-class MyDistribution (Distribution):
+class MyDistribution(Distribution):
     """Custom distribution class generating config file."""
 
-    def __init__ (self, attrs):
+    def __init__(self, attrs):
         """Set console and windows scripts."""
-        super(MyDistribution, self).__init__(attrs)
-        self.console = ['linkchecker']
+        super().__init__(attrs)
+        self.console = ["linkchecker"]
 
-    def run_commands (self):
+    def run_commands(self):
         """Generate config file and run commands."""
         cwd = os.getcwd()
         data = []
-        data.append('config_dir = %r' % os.path.join(cwd, "config"))
+        data.append("config_dir = %r" % os.path.join(cwd, "config"))
         data.append("install_data = %r" % cwd)
         data.append("install_scripts = %r" % cwd)
         self.create_conf_file(data)
-        super(MyDistribution, self).run_commands()
+        super().run_commands()
 
-    def get_conf_filename (self, directory):
+    def get_conf_filename(self, directory):
         """Get name for config file."""
         return os.path.join(directory, "_%s_configdata.py" % self.get_name())
 
-    def create_conf_file (self, data, directory=None):
+    def create_conf_file(self, data, directory=None):
         """Create local config file from given data (list of lines) in
         the directory (or current directory if not given)."""
         data.insert(0, "# this file is automatically created by setup.py")
@@ -237,67 +238,56 @@ class MyDistribution (Distribution):
             directory = os.getcwd()
         filename = self.get_conf_filename(directory)
         # add metadata
-        metanames = ("name", "version", "author", "author_email",
-                     "maintainer", "maintainer_email", "url",
-                     "license", "description", "long_description",
-                     "keywords", "platforms", "fullname", "contact",
-                     "contact_email")
+        metanames = (
+            "name",
+            "version",
+            "author",
+            "author_email",
+            "maintainer",
+            "maintainer_email",
+            "url",
+            "license",
+            "description",
+            "long_description",
+            "keywords",
+            "platforms",
+            "fullname",
+            "contact",
+            "contact_email",
+        )
         for name in metanames:
             method = "get_" + name
             val = getattr(self.metadata, method)()
             cmd = "%s = %r" % (name, val)
             data.append(cmd)
         data.append('release_date = "%s"' % get_release_date())
-        data.append('portable = %s' % get_portable())
+        data.append("portable = %s" % get_portable())
         # write the config file
-        util.execute(write_file, (filename, data),
-                     "creating %s" % filename, self.verbose >= 1, self.dry_run)
+        util.execute(
+            write_file,
+            (filename, data),
+            "creating %s" % filename,
+            self.verbose >= 1,
+            self.dry_run,
+        )
 
 
-def list_message_files (package, suffix=".mo"):
+def list_message_files(package, suffix=".mo"):
     """Return list of all found message files and their installation paths."""
     for fname in glob.glob("po/*" + suffix):
         # basename (without extension) is a locale name
         localename = os.path.splitext(os.path.basename(fname))[0]
         domainname = "%s.mo" % package.lower()
-        yield (fname, os.path.join(
-            "share", "locale", localename, "LC_MESSAGES", domainname))
+        yield (
+            fname,
+            os.path.join("share", "locale", localename, "LC_MESSAGES", domainname),
+        )
 
 
-def check_manifest ():
-    """Snatched from roundup.sf.net.
-    Check that the files listed in the MANIFEST are present when the
-    source is unpacked."""
-    try:
-        f = open('MANIFEST')
-    except Exception:
-        print('\n*** SOURCE WARNING: The MANIFEST file is missing!')
-        return
-    try:
-        manifest = [l.strip() for l in f.readlines() if not l.startswith('#')]
-    finally:
-        f.close()
-    err = [line for line in manifest if not os.path.exists(line)]
-    if err:
-        n = len(manifest)
-        print('\n*** SOURCE WARNING: There are files missing (%d/%d found)!' %
-            (n - len(err), n))
-        print('\nMissing: '.join(err))
-
-
-class MyBuild (build):
-    """Custom build command."""
-
-    def run (self):
-        """Check MANIFEST before building."""
-        check_manifest()
-        build.run(self)
-
-
-class MyClean (clean):
+class MyClean(clean):
     """Custom clean command."""
 
-    def run (self):
+    def run(self):
         """Remove share directory on clean."""
         if self.all:
             # remove share directory
@@ -309,114 +299,95 @@ class MyClean (clean):
         clean.run(self)
 
 
-class MySdist (sdist):
-    """Custom sdist command."""
-
-    def get_file_list (self):
-        """Add MANIFEST to the file list."""
-        super(MySdist, self).get_file_list()
-        self.filelist.append("MANIFEST")
-
-
 # scripts
-scripts = ['linkchecker']
+scripts = ["linkchecker"]
 
 myname = "Bastian Kleineidam"
 myemail = "bastian.kleineidam@web.de"
 
 data_files = [
-    ('share/linkchecker',
-        ['config/linkcheckerrc']),
-    ('share/linkchecker/examples',
-        ['cgi-bin/lconline/leer.html.en',
-         'cgi-bin/lconline/leer.html.de',
-         'cgi-bin/lconline/index.html',
-         'cgi-bin/lconline/lc_cgi.html.en',
-         'cgi-bin/lconline/lc_cgi.html.de',
-         'cgi-bin/lconline/check.js',
-         'cgi-bin/lc.wsgi',
-         'config/linkchecker.apache2.conf',
-        ]),
+    ("share/linkchecker", ["config/linkcheckerrc"]),
+    (
+        "share/linkchecker/examples",
+        [
+            "cgi-bin/lconline/leer.html.en",
+            "cgi-bin/lconline/leer.html.de",
+            "cgi-bin/lconline/index.html",
+            "cgi-bin/lconline/lc_cgi.html.en",
+            "cgi-bin/lconline/lc_cgi.html.de",
+            "cgi-bin/lconline/check.js",
+            "cgi-bin/lc.wsgi",
+            "config/linkchecker.apache2.conf",
+        ],
+    ),
 ]
 
 for (src, dst) in list_message_files(AppName):
     data_files.append((dst, [src]))
 
-if os.name == 'posix':
-    data_files.append(('share/man/man1', ['doc/en/linkchecker.1']))
-    data_files.append(('share/man/man5', ['doc/en/linkcheckerrc.5']))
-    data_files.append(('share/man/de/man1', ['doc/de/linkchecker.1']))
-    data_files.append(('share/man/de/man5', ['doc/de/linkcheckerrc.5']))
-    data_files.append(('share/linkchecker/examples',
-              ['config/linkchecker-completion',
-               'doc/examples/check_blacklist.sh',
-               'doc/examples/check_for_x_errors.sh',
-               'doc/examples/check_urls.sh']))
-    data_files.append(('share/applications', ['doc/linkchecker.desktop']))
+if os.name == "posix":
+    data_files.append(("share/man/man1", ["doc/en/linkchecker.1"]))
+    data_files.append(("share/man/man5", ["doc/en/linkcheckerrc.5"]))
+    data_files.append(("share/man/de/man1", ["doc/de/linkchecker.1"]))
+    data_files.append(("share/man/de/man5", ["doc/de/linkcheckerrc.5"]))
+    data_files.append(
+        (
+            "share/linkchecker/examples",
+            [
+                "config/linkchecker-completion",
+                "doc/examples/check_blacklist.sh",
+                "doc/examples/check_for_x_errors.sh",
+                "doc/examples/check_urls.sh",
+            ],
+        )
+    )
 
 setup(
-    name = AppName,
-    version = AppVersion,
-    description = Description,
-    keywords = "link,url,site,checking,crawling,verification,validation",
-    author = myname,
-    author_email = myemail,
-    maintainer = myname,
-    maintainer_email = myemail,
-    url = "https://github.com/moxventura/linkchecker/",
-    license = "GPL",
-    long_description = get_long_description(),
-    distclass = MyDistribution,
-    cmdclass = {
-        'install_lib': MyInstallLib,
-        'install_data': MyInstallData,
-        'build': MyBuild,
-        'clean': MyClean,
-        'sdist': MySdist,
+    name=AppName,
+    version=AppVersion,
+    description=Description,
+    keywords="link,url,site,checking,crawling,verification,validation",
+    author=myname,
+    author_email=myemail,
+    maintainer=myname,
+    maintainer_email=myemail,
+    url="https://linkchecker.github.io/linkchecker/",
+    license="GPL",
+    long_description=get_long_description(),
+    distclass=MyDistribution,
+    cmdclass={
+        "install_lib": MyInstallLib,
+        "install_data": MyInstallData,
+        "clean": MyClean,
     },
-    packages = [
-        'linkcheck',
-        'linkcheck.bookmarks',
-        'linkcheck.cache',
-        'linkcheck.checker',
-        'linkcheck.configuration',
-        'linkcheck.director',
-        'linkcheck.htmlutil',
-        'linkcheck.HtmlParser',
-        'linkcheck.logger',
-        'linkcheck.network',
-        'linkcheck.parser',
-        'linkcheck.plugins',
-    ],
-    scripts = scripts,
-    data_files = data_files,
-    classifiers = [
-        'Topic :: Internet :: WWW/HTTP :: Site Management :: Link Checking',
-        'Development Status :: 5 - Production/Stable',
-        'License :: OSI Approved :: GNU General Public License (GPL)',
-        'Programming Language :: Python',
+    packages=find_packages(include=["linkcheck", "linkcheck.*"]),
+    scripts=scripts,
+    data_files=data_files,
+    classifiers=[
+        "Topic :: Internet :: WWW/HTTP :: Site Management :: Link Checking",
+        "Development Status :: 5 - Production/Stable",
+        "License :: OSI Approved :: GNU General Public License (GPL)",
+        "Programming Language :: Python",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
-    options = {
-    },
+    options={},
     # Requirements, usable with setuptools or the new Python packaging module.
-    python_requires = '>= 3.5',
-    install_requires = [
-        'requests >= 2.4',
-        'dnspython',
-        'beautifulsoup4',
-        'pyxdg',
-        'future',
+    python_requires=">= 3.5",
+    install_requires=[
+        "requests >= 2.4",
+        "dnspython",
+        "beautifulsoup4",
+        "pyxdg",
     ],
     # Commented out since they are untested and not officially supported.
     # See also doc/install.txt for more detailed dependency documentation.
-    #extra_requires = {
-    #    "IP country info": ['GeoIP'], # http://www.maxmind.com/app/python
-    #    "GNOME proxies": ['pygtk'], # http://www.pygtk.org/downloads.html
-    #    "Bash completion": ['argcomplete'], # https://pypi.python.org/pypi/argcomplete
-    #    "Memory debugging": ['meliae'], # https://launchpad.net/meliae
-    #}
+    # extra_requires = {
+    #    "IP country info": ['GeoIP'], # https://pypi.org/project/GeoIP/
+    #    "GNOME proxies": ['PyGObject'], # https://pypi.org/project/PyGObject/
+    #    "Bash completion": ['argcomplete'], # https://pypi.org/project/argcomplete/
+    #    "Memory debugging": ['meliae'], # https://pypi.org/project/meliae/
+    # }
 )

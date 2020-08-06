@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2007-2009 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -22,14 +21,14 @@ import linkcheck.configuration
 from .__init__ import LinkCheckTest, get_url_from
 
 
-class TestInternpat (LinkCheckTest):
+class TestInternpat(LinkCheckTest):
     """Test internal pattern."""
 
-    def test_trailing_slash (self):
+    def test_trailing_slash(self):
         # Make sure a trailing slash is not lost
         config = linkcheck.configuration.Configuration()
         aggregate = linkcheck.director.get_aggregate(config)
         url = "http://example.org/foo/"
         url_data = get_url_from(url, 0, aggregate)
         internpat = url_data.get_intern_pattern()
-        self.assertTrue(internpat.endswith('/'))
+        self.assertTrue(internpat.endswith("/"))

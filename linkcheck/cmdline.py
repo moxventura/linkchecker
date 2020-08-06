@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,7 +16,6 @@
 """
 Utility functions suitable for command line clients.
 """
-from __future__ import print_function
 import sys
 import argparse
 from . import checker, fileutil, strformat, plugins
@@ -45,7 +43,9 @@ def print_version(exit_code=0):
 def print_plugins(folders, exit_code=0):
     """Print available plugins and exit."""
     modules = plugins.get_plugin_modules(folders)
-    pluginclasses = sorted(plugins.get_plugin_classes(modules), key=lambda x: x.__name__)
+    pluginclasses = sorted(
+        plugins.get_plugin_classes(modules), key=lambda x: x.__name__
+    )
 
     for pluginclass in pluginclasses:
         print(pluginclass.__name__)
@@ -55,15 +55,18 @@ def print_plugins(folders, exit_code=0):
     sys.exit(exit_code)
 
 
-def print_usage (msg, exit_code=2):
+def print_usage(msg, exit_code=2):
     """Print a program msg text to stderr and exit."""
     program = sys.argv[0]
     print(_("Error: %(msg)s") % {"msg": msg}, file=console.stderr)
-    print(_("Execute '%(program)s -h' for help") % {"program": program}, file=console.stderr)
+    print(
+        _("Execute '%(program)s -h' for help") % {"program": program},
+        file=console.stderr,
+    )
     sys.exit(exit_code)
 
 
-def aggregate_url (aggregate, url, err_exit_code=2):
+def aggregate_url(aggregate, url, err_exit_code=2):
     """Append given commandline URL to input queue."""
     get_url_from = checker.get_url_from
     url = checker.guess_url(url)

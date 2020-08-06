@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -21,7 +20,7 @@ from .. import loader, log, LOG_PLUGIN
 from ..decorators import notimplemented
 
 
-class _PluginBase(object):
+class _PluginBase:
     """Basic plugin class featuring plugin identification and
     helper functions."""
 
@@ -47,21 +46,23 @@ class _PluginBase(object):
 
 class _ConnectionPlugin(_PluginBase):
     """Plugins run after connection checks."""
+
     pass
 
 
 class _ContentPlugin(_PluginBase):
     """Plugins run for valid URLs with content."""
+
     pass
 
 
 class _ParserPlugin(_PluginBase):
     """Plugins run for valid URLs to parse their contents."""
+
     pass
 
 
-def get_plugin_modules(folders, package='plugins',
-                       parentpackage='linkcheck.dummy'):
+def get_plugin_modules(folders, package='plugins', parentpackage='linkcheck.dummy'):
     """Get plugin modules for given folders."""
     for folder in folders:
         for module in loader.get_folder_modules(folder, parentpackage):
@@ -76,7 +77,7 @@ def get_plugin_classes(modules):
     return loader.get_plugins(modules, classes)
 
 
-class PluginManager(object):
+class PluginManager:
     """Manage all connection and content plugins."""
 
     def __init__(self, config):
@@ -115,7 +116,9 @@ class PluginManager(object):
 
     def run_parser_plugins(self, url_data, pagetype):
         """Run parser plugins for given pagetype."""
-        run_plugins(self.parser_plugins, url_data, stop_after_match=True, pagetype=pagetype)
+        run_plugins(
+            self.parser_plugins, url_data, stop_after_match=True, pagetype=pagetype
+        )
 
 
 def run_plugins(plugins, url_data, stop_after_match=False, **kwargs):

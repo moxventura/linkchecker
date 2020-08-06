@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 #
 # Copyright (c) 2012, Albert Zeyer, www.az2000.de
 # All rights reserved.
@@ -33,9 +32,12 @@
 
 # https://github.com/albertz/py_better_exchook
 
-from __future__ import print_function
 import sys
 import os
+import keyword
+
+pykeywords = set(keyword.kwlist)
+
 
 def parse_py_statement(line):
 	state = 0
@@ -92,9 +94,6 @@ def parse_py_statement(line):
 	elif state == 6: yield ("comment", curtoken)
 
 
-import keyword
-pykeywords = set(keyword.kwlist)
-
 def grep_full_py_identifiers(tokens):
 	global pykeywords
 	tokens = list(tokens)
@@ -111,10 +110,6 @@ def grep_full_py_identifiers(tokens):
 		if token[0] in ".0123456789": continue
 		yield token
 
-def set_linecache(filename, source):
-	import linecache
-	linecache.cache[filename] = None, None, [line+'\n' for line in source.splitlines()], filename
-
 def output(s, out=sys.stdout): print(s, file=out)
 
 def output_limit():
@@ -124,14 +119,14 @@ def pp_extra_info(obj, depthlimit = 3):
 	s = []
 	if hasattr(obj, "__len__"):
 		try:
-			if type(obj) in (str,unicode,list,tuple,dict) and len(obj) <= 5:
+			if type(obj) in (bytes,str,list,tuple,dict) and len(obj) <= 5:
 				pass # don't print len in this case
 			else:
 				s += ["len = " + str(obj.__len__())]
 		except: pass
 	if depthlimit > 0 and hasattr(obj, "__getitem__"):
 		try:
-			if type(obj) in (str,unicode):
+			if type(obj) in (bytes,str):
 				pass # doesn't make sense to get subitems here
 			else:
 				subobj = obj.__getitem__(0)

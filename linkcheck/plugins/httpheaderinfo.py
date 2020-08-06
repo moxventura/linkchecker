@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -25,7 +24,7 @@ class HttpHeaderInfo(_ConnectionPlugin):
 
     def __init__(self, config):
         """Initialize configuration."""
-        super(HttpHeaderInfo, self).__init__(config)
+        super().__init__(config)
         self.prefixes = tuple(config["prefixes"])
 
     def applies_to(self, url_data):
@@ -39,8 +38,11 @@ class HttpHeaderInfo(_ConnectionPlugin):
             if name.lower().startswith(self.prefixes):
                 headers.append(name.lower())
         if headers:
-            items = [u"%s=%s" % (name.capitalize(), url_data.headers[name]) for name in headers]
-            info = u"HTTP headers %s" % u", ".join(items)
+            items = [
+                "%s=%s" % (name.capitalize(), url_data.headers[name])
+                for name in headers
+            ]
+            info = "HTTP headers %s" % ", ".join(items)
             url_data.add_info(info)
 
     @classmethod
@@ -56,4 +58,3 @@ class HttpHeaderInfo(_ConnectionPlugin):
             names = []
         config[option] = names
         return config
-

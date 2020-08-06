@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -22,85 +21,35 @@
 Various string utility functions. Note that these functions are not
 necessarily optimised for large strings, so use with care.
 """
+
+import re
+import textwrap
+import os
+import time
+import locale
+import pydoc
+
 # some handy time constants
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE
 SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR
 
-import re
-import textwrap
-import codecs
-import os
-import math
-import time
-try:
-    import urlparse
-except ImportError:
-    # Python 3
-    from urllib import parse as urlparse
-import locale
-import pydoc
-from . import i18n
 
-from builtins import str as str_text
-
-
-def unicode_safe (s, encoding=i18n.default_encoding, errors='replace'):
-    """Get unicode string without raising encoding errors. Unknown
-    characters of the given encoding will be ignored.
-
-    @param s: the string to be decoded
-    @type s: any object except None
-    @return: if s is already unicode, return s unchanged; else return
-        decoded unicode string of str(s)
-    @rtype: unicode
-    """
-    assert s is not None, "argument to unicode_safe was None"
-    if isinstance(s, str):
-        # s is already unicode, nothing to do
-        return s
-    elif isinstance(s, bytes):
-        return s.decode(encoding, errors)
-    return str(s)
-
-
-def ascii_safe (s):
+def ascii_safe(s):
     """Get ASCII string without raising encoding errors. Unknown
     characters of the given encoding will be ignored.
 
-    @param s: the Unicode string to be encoded
-    @type s: unicode or None
-    @return: encoded ASCII version of s, or None if s was None
-    @rtype: string
+    @param s: the string to be encoded
+    @type s: string or None
+    @return: version of s containing only ASCII characters, or None if s was None
+    @rtype: string or None
     """
-    if isinstance(s, str_text):
+    if s:
         s = s.encode('ascii', 'ignore').decode('ascii')
     return s
 
 
-def is_ascii (s):
-    """Test if a string can be encoded in ASCII."""
-    try:
-        s.encode('ascii', 'strict')
-        return True
-    except (UnicodeEncodeError, UnicodeDecodeError):
-        return False
-
-
-def is_encoding (text):
-    """Check if string is a valid encoding."""
-    try:
-        return codecs.lookup(text)
-    except (LookupError, ValueError):
-        return False
-
-
-def url_unicode_split (url):
-    """Like urlparse.urlsplit(), but always returning unicode parts."""
-    return [unicode_safe(s) for s in urlparse.urlsplit(url)]
-
-
-def unquote (s, matching=False):
+def unquote(s, matching=False):
     """Remove leading and ending single and double quotes.
     The quotes need to match if matching is True. Only one quote from each
     end will be stripped.
@@ -129,7 +78,8 @@ _para_posix = r"(?:%(sep)s)(?:(?:%(sep)s)\s*)+" % {'sep': '\n'}
 _para_win = r"(?:%(sep)s)(?:(?:%(sep)s)\s*)+" % {'sep': '\r\n'}
 _para_ro = re.compile("%s|%s|%s" % (_para_mac, _para_posix, _para_win))
 
-def get_paragraphs (text):
+
+def get_paragraphs(text):
     """A new paragraph is considered to start at a line which follows
     one or more blank lines (lines containing nothing or just spaces).
     The first line of the text also starts a paragraph."""
@@ -138,7 +88,7 @@ def get_paragraphs (text):
     return _para_ro.split(text)
 
 
-def wrap (text, width, **kwargs):
+def wrap(text, width, **kwargs):
     """Adjust lines of text to be not longer than width. The text will be
     returned unmodified if width <= 0.
     See textwrap.wrap() for a list of supported kwargs.
@@ -152,105 +102,69 @@ def wrap (text, width, **kwargs):
     return os.linesep.join(ret)
 
 
-def indent (text, indent_string="  "):
+def indent(text, indent_string="  "):
     """Indent each line of text with the given indent string."""
-    return os.linesep.join("%s%s" % (indent_string, x)
-                           for x in text.splitlines())
+    return os.linesep.join("%s%s" % (indent_string, x) for x in text.splitlines())
 
 
-def get_line_number (s, index):
-    r"""Return the line number of s[index] or zero on errors.
-    Lines are assumed to be separated by the ASCII character '\n'."""
-    i = 0
-    if index < 0:
-        return 0
-    line = 1
-    while i < index:
-        if s[i] == '\n':
-            line += 1
-        i += 1
-    return line
-
-
-def paginate (text):
+def paginate(text):
     """Print text in pages of lines."""
     pydoc.pager(text)
 
 
-_markup_re = re.compile("<.*?>", re.DOTALL)
-
-def remove_markup (s):
-    """Remove all <*> html markup tags from s."""
-    mo = _markup_re.search(s)
-    while mo:
-        s = s[0:mo.start()] + s[mo.end():]
-        mo = _markup_re.search(s)
-    return s
-
-
-def strsize (b, grouping=True):
+def strsize(b, grouping=True):
     """Return human representation of bytes b. A negative number of bytes
     raises a value error."""
     if b < 0:
         raise ValueError("Invalid negative byte number")
     if b < 1024:
-        return u"%sB" % locale.format_string("%d", b, grouping)
+        return "%sB" % locale.format_string("%d", b, grouping)
     if b < 1024 * 10:
-        return u"%sKB" % locale.format_string("%d", (b // 1024), grouping)
+        return "%sKB" % locale.format_string("%d", (b // 1024), grouping)
     if b < 1024 * 1024:
-        return u"%sKB" % locale.format_string("%.2f", (float(b) / 1024), grouping)
+        return "%sKB" % locale.format_string("%.2f", (float(b) / 1024), grouping)
     if b < 1024 * 1024 * 10:
-        return u"%sMB" % locale.format_string("%.2f", (float(b) / (1024*1024)), grouping)
+        return "%sMB" % locale.format_string(
+            "%.2f", (float(b) / (1024 * 1024)), grouping
+        )
     if b < 1024 * 1024 * 1024:
-        return u"%sMB" % locale.format_string("%.1f", (float(b) / (1024*1024)), grouping)
+        return "%sMB" % locale.format_string(
+            "%.1f", (float(b) / (1024 * 1024)), grouping
+        )
     if b < 1024 * 1024 * 1024 * 10:
-        return u"%sGB" % locale.format_string("%.2f", (float(b) / (1024*1024*1024)), grouping)
-    return u"%sGB" % locale.format_string("%.1f", (float(b) / (1024*1024*1024)), grouping)
+        return "%sGB" % locale.format_string(
+            "%.2f", (float(b) / (1024 * 1024 * 1024)), grouping
+        )
+    return "%sGB" % locale.format_string(
+        "%.1f", (float(b) / (1024 * 1024 * 1024)), grouping
+    )
 
 
-def strtime (t, func=time.localtime):
+def strtime(t, func=time.localtime):
     """Return ISO 8601 formatted time."""
     return time.strftime("%Y-%m-%d %H:%M:%S", func(t)) + strtimezone()
 
 
 # from quodlibet
-def strduration (duration):
-    """Turn a time value in seconds into hh:mm:ss or mm:ss."""
-    if duration < 0:
-        duration = abs(duration)
-        prefix = "-"
-    else:
-        prefix = ""
-    duration = math.ceil(duration)
-    if duration >= SECONDS_PER_HOUR: # 1 hour
-        # time, in hours:minutes:seconds
-        return "%s%02d:%02d:%02d" % (prefix, duration // SECONDS_PER_HOUR,
-                                   (duration % SECONDS_PER_HOUR) // SECONDS_PER_MINUTE,
-                                    duration % SECONDS_PER_MINUTE)
-    else:
-        # time, in minutes:seconds
-        return "%s%02d:%02d" % (prefix, duration // SECONDS_PER_MINUTE,
-                                 duration % SECONDS_PER_MINUTE)
-
-
-# from quodlibet
-def strduration_long (duration, do_translate=True):
+def strduration_long(duration, do_translate=True):
     """Turn a time value in seconds into x hours, x minutes, etc."""
     if do_translate:
         # use global translator functions
         global _, _n
     else:
         # do not translate
-        _ = lambda x: x
-        _n = lambda a, b, n: a if n==1 else b
+        def _(x): return x
+        def _n(a, b, n): return a if n == 1 else b
     if duration < 0:
         duration = abs(duration)
         prefix = "-"
     else:
         prefix = ""
     if duration < 1:
-        return _("%(prefix)s%(duration).02f seconds") % \
-               {"prefix": prefix, "duration": duration}
+        return _("%(prefix)s%(duration).02f seconds") % {
+            "prefix": prefix,
+            "duration": duration,
+        }
     # translation dummies
     _n("%d second", "%d seconds", 1)
     _n("%d minute", "%d minutes", 1)
@@ -280,14 +194,14 @@ def strduration_long (duration, do_translate=True):
     return "%s%s" % (prefix, ", ".join(time_str))
 
 
-def strtimezone ():
+def strtimezone():
     """Return timezone info, %z on some platforms, but not supported on all.
     """
     if time.daylight:
         zone = time.altzone
     else:
         zone = time.timezone
-    return "%+04d" % (-zone//SECONDS_PER_HOUR)
+    return "%+04d" % (-zone // SECONDS_PER_HOUR)
 
 
 def stripurl(s):
@@ -298,7 +212,7 @@ def stripurl(s):
     return s.splitlines()[0].strip()
 
 
-def limit (s, length=72):
+def limit(s, length=72):
     """If the length of the string exceeds the given limit, it will be cut
     off and three dots will be appended.
 
@@ -316,16 +230,22 @@ def limit (s, length=72):
     return "%s..." % s[:length]
 
 
-def strline (s):
+def strline(s):
     """Display string representation on one line."""
     return strip_control_chars("`%s'" % s.replace("\n", "\\n"))
 
 
-def format_feature_warning (**kwargs):
+def format_feature_warning(**kwargs):
     """Format warning that a module could not be imported and that it should
     be installed for a certain URL.
     """
-    return _("Could not import %(module)s for %(feature)s. Install %(module)s from %(url)s to use this feature.") % kwargs
+    return (
+        _(
+            "Could not import %(module)s for %(feature)s."
+            " Install %(module)s from %(url)s to use this feature."
+        )
+        % kwargs
+    )
 
 
 def strip_control_chars(text):

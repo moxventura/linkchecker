@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -19,14 +18,12 @@ Main functions for link checking.
 """
 
 import os
-from html import escape as html_escape
-try: # Python 3
-    from urllib import parse as urlparse
-except ImportError:
-    import urllib as urlparse
-from .. import strformat, url as urlutil, log, LOG_CHECK
+import html
+import urllib.parse
 
-MAX_FILESIZE = 1024*1024*10 # 10MB
+from .. import url as urlutil, log, LOG_CHECK
+
+MAX_FILESIZE = 1024 * 1024 * 10  # 10MB
 
 
 def guess_url(url):
@@ -46,7 +43,7 @@ def guess_url(url):
     return url
 
 
-def absolute_url (base_url, base_ref, parent_url):
+def absolute_url(base_url, base_ref, parent_url):
     """
     Search for the absolute url to detect the link type. This does not
     join any url fragments together!
@@ -64,12 +61,23 @@ def absolute_url (base_url, base_ref, parent_url):
         return base_ref
     elif parent_url and urlutil.url_is_absolute(parent_url):
         return parent_url
-    return u""
+    return ""
 
 
-def get_url_from (base_url, recursion_level, aggregate,
-                  parent_url=None, base_ref=None, line=None, column=None,
-                  page=0, name=u"", parent_content_type=None, extern=None, url_encoding=None):
+def get_url_from(
+    base_url,
+    recursion_level,
+    aggregate,
+    parent_url=None,
+    base_ref=None,
+    line=None,
+    column=None,
+    page=0,
+    name="",
+    parent_content_type=None,
+    extern=None,
+    url_encoding=None,
+):
     """
     Get url data from given base data.
 
@@ -95,16 +103,10 @@ def get_url_from (base_url, recursion_level, aggregate,
     @type extern: tuple(int, int) or None
     """
     if base_url is not None:
-        base_url = strformat.unicode_safe(base_url)
         # left strip for detection of URL scheme
         base_url_stripped = base_url.lstrip()
     else:
         base_url_stripped = base_url
-    if parent_url is not None:
-        parent_url = strformat.unicode_safe(parent_url)
-    if base_ref is not None:
-        base_ref = strformat.unicode_safe(base_ref)
-    name = strformat.unicode_safe(name)
     url = absolute_url(base_url_stripped, base_ref, parent_url).lower()
     if ":" in url:
         scheme = url.split(":", 1)[0].lower()
@@ -115,20 +117,34 @@ def get_url_from (base_url, recursion_level, aggregate,
             name = base_url.replace("\\", "/")
     allowed_schemes = aggregate.config["allowedschemes"]
     # ignore local PHP files with execution directives
-    local_php = (parent_content_type == 'application/x-httpd-php' and
-       '<?' in base_url and '?>' in base_url and scheme == 'file')
+    local_php = (
+        parent_content_type == 'application/x-httpd-php'
+        and '<?' in base_url
+        and '?>' in base_url
+        and scheme == 'file'
+    )
     if local_php or (allowed_schemes and scheme not in allowed_schemes):
         klass = ignoreurl.IgnoreUrl
     else:
-        assume_local_file = (recursion_level == 0)
+        assume_local_file = recursion_level == 0
         klass = get_urlclass_from(scheme, assume_local_file=assume_local_file)
     log.debug(LOG_CHECK, "%s handles url %s", klass.__name__, base_url)
-    return klass(base_url, recursion_level, aggregate,
-                 parent_url=parent_url, base_ref=base_ref,
-                 line=line, column=column, page=page, name=name, extern=extern, url_encoding=url_encoding)
+    return klass(
+        base_url,
+        recursion_level,
+        aggregate,
+        parent_url=parent_url,
+        base_ref=base_ref,
+        line=line,
+        column=column,
+        page=page,
+        name=name,
+        extern=extern,
+        url_encoding=url_encoding,
+    )
 
 
-def get_urlclass_from (scheme, assume_local_file=False):
+def get_urlclass_from(scheme, assume_local_file=False):
     """Return checker class for given URL scheme. If the scheme
     cannot be matched and assume_local_file is True, assume a local file.
     """
@@ -157,7 +173,7 @@ def get_urlclass_from (scheme, assume_local_file=False):
     return klass
 
 
-def get_index_html (urls):
+def get_index_html(urls):
     """
     Construct artificial index.html from given URLs.
 
@@ -166,9 +182,9 @@ def get_index_html (urls):
     """
     lines = ["<html>", "<body>"]
     for entry in urls:
-        name = html_escape(entry)
+        name = html.escape(entry)
         try:
-            url = html_escape(urlparse.quote(entry))
+            url = html.escape(urllib.parse.quote(entry))
         except KeyError:
             # Some unicode entries raise KeyError.
             url = name
@@ -178,5 +194,15 @@ def get_index_html (urls):
 
 
 # all the URL classes
-from . import (fileurl, unknownurl, ftpurl, httpurl, dnsurl,
-    mailtourl, telneturl, nntpurl, ignoreurl, itmsservicesurl)
+from . import (  # noqa: E402
+    fileurl,
+    unknownurl,
+    ftpurl,
+    httpurl,
+    dnsurl,
+    mailtourl,
+    telneturl,
+    nntpurl,
+    ignoreurl,
+    itmsservicesurl,
+)

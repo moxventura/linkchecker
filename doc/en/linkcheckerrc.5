@@ -1,4 +1,4 @@
-.TH linkcheckerrc 5 2007-11-30 "LinkChecker"
+.TH LINKCHECKERRC 5 2020-06-05 "LinkChecker" "LinkChecker User Manual"
 .SH NAME
 linkcheckerrc - configuration file for LinkChecker
 .
@@ -13,7 +13,8 @@ The default file location is \fB~/.linkchecker/linkcheckerrc\fP on Unix,
 .TP
 \fBcookiefile=\fP\fIfilename\fP
 Read a file with initial cookie data. The cookie data
-format is explained in linkchecker(1).
+format is explained in
+.BR linkchecker (1).
 .br
 Command line option: \fB\-\-cookiefile\fP
 .TP
@@ -128,35 +129,40 @@ Command line option: \fB\-\-checkextern\fP
 .SS \fB[authentication]\fP
 .TP
 \fBentry=\fP\fIREGEX\fP \fIUSER\fP [\fIPASS\fP] (MULTILINE)
-Provide different user/password pairs for different link types.
-Entries are a triple (URL regex, username, password)
-or a tuple (URL regex, username), where the entries are
-separated by whitespace.
+Provide individual username/password pairs for different links. In addtion to a 
+single login page specified with \fBloginurl\fP multiple FTP,
+HTTP (Basic Authentication) and telnet links are supported. Entries are a
+triple (URL regex, username, password) or a tuple (URL regex, username),
+where the entries are separated by whitespace.
 .br
 The password is optional and if missing it has to be entered at the
 commandline.
 .br
-If the regular expression matches the checked URL, the given user/password
-pair is used for authentication. The commandline options
+If the regular expression matches the checked URL, the given username/password
+pair is used for authentication. The command line options
 \fB\-u\fP and \fB\-p\fP match every link and therefore override the entries
-given here. The first match wins. At the moment, authentication is
-used/needed for http[s] and ftp links.
+given here. The first match wins.
 .br
 Command line option: \fB\-u\fP, \fB\-p\fP
 .TP
 \fBloginurl=\fP\fIURL\fP
-A login URL to be visited before checking. Also needs authentication
-data set for it.
+The URL of a login page to be visited before link checking. The page is expected
+to contain an HTML form to collect credentials and submit them to the address in
+its action attribute using an HTTP POST request.
+The name attributes of the input elements of the form and the values to be
+submitted need to be available (see \fBentry\fP for an explanation of username
+and password values).
 .TP
 \fBloginuserfield=\fP\fISTRING\fP
-The name of the user CGI field. Default name is \fBlogin\fP.
+The name attribute of the username input element. Default: \fBlogin\fP.
 .TP
 \fBloginpasswordfield=\fP\fISTRING\fP
-The name of the password CGI field. Default name is \fBpassword\fP.
+The name attribute of the password input element. Default: \fBpassword\fP.
 .TP
 \fBloginextrafields=\fP\fINAME\fP\fB:\fP\fIVALUE\fP (MULTILINE)
-Optionally any additional CGI name/value pairs. Note that the default
-values are submitted automatically.
+Optionally the name attributes of any additional input elements and the values
+to populate them with. Note that these are submitted without
+checking whether matching input elements exist in the HTML form.
 .SS \fB[output]\fP
 .TP
 \fBdebug=\fP\fISTRING\fP[\fB,\fP\fISTRING\fP...]
@@ -188,7 +194,8 @@ below.
 .br
 The \fIENCODING\fP specifies the output encoding, the default is
 that of your locale. Valid encodings are listed at
-\fBhttp://docs.python.org/library/codecs.html#standard-encodings\fP.
+.UR https://docs.python.org/library/codecs.html#standard-encodings
+.UE .
 .br
 Command line option: \fB\-\-output\fP
 .TP
@@ -228,7 +235,8 @@ Command line option: none
 .TP
 \fBencoding=\fP\fISTRING\fP
 Valid encodings are listed in
-\fBhttp://docs.python.org/library/codecs.html#standard-encodings\fP.
+.UR https://docs.python.org/library/codecs.html#standard-encodings
+.UE .
 .br
 Default encoding is \fBiso\-8859\-15\fP.
 .TP
@@ -404,42 +412,47 @@ priority for the first URL is 1.0, for all child URLs 0.5.
 How frequently pages are changing.
 .
 .SH "LOGGER PARTS"
- \fBall\fP       (for all parts)
- \fBid\fP        (a unique ID for each logentry)
- \fBrealurl\fP   (the full url link)
- \fBresult\fP    (valid or invalid, with messages)
- \fBextern\fP    (1 or 0, only in some logger types reported)
- \fBbase\fP      (base href=...)
- \fBname\fP      (<a href=...>name</a> and <img alt="name">)
- \fBparenturl\fP (if any)
- \fBinfo\fP      (some additional info, e.g. FTP welcome messages)
- \fBwarning\fP   (warnings)
- \fBdltime\fP    (download time)
- \fBchecktime\fP (check time)
- \fBurl\fP       (the original url name, can be relative)
- \fBintro\fP     (the blurb at the beginning, "starting at ...")
- \fBoutro\fP     (the blurb at the end, "found x errors ...")
+.TS
+nokeep, tab(@);
+ll.
+\fBall\fP@(for all parts)
+\fBid\fP@(a unique ID for each logentry)
+\fBrealurl\fP@(the full url link)
+\fBresult\fP@(valid or invalid, with messages)
+\fBextern\fP@(1 or 0, only in some logger types reported)
+\fBbase\fP@(base href=...)
+\fBname\fP@(<a href=...>name</a> and <img alt="name">)
+\fBparenturl\fP@(if any)
+\fBinfo\fP@(some additional info, e.g. FTP welcome messages)
+\fBwarning\fP@(warnings)
+\fBdltime\fP@(download time)
+\fBchecktime\fP@(check time)
+\fBurl\fP@(the original url name, can be relative)
+\fBintro\fP@(the blurb at the beginning, "starting at ...")
+\fBoutro\fP@(the blurb at the end, "found x errors ...")
+.TE
 .SH MULTILINE
 Some option values can span multiple lines. Each line has to be indented
 for that to work. Lines starting with a hash (\fB#\fP) will be ignored,
 though they must still be indented.
-
- ignore=
-   lconline
-   bookmark
-   # a comment
-   ^mailto:
-.
+.EX
+ignore=
+  lconline
+  bookmark
+  # a comment
+  ^mailto:
+.EE
 .SH EXAMPLE
- [output]
- log=html
-
- [checking]
- threads=5
-
- [filtering]
- ignorewarnings=http-moved-permanent
-
+.EX
+[output]
+log=html
+.PP
+[checking]
+threads=5
+.PP
+[filtering]
+ignorewarnings=http-moved-permanent
+.EE
 .SH PLUGINS
 All plugins have a separate section. If the section
 appears in the configuration file the plugin is enabled.
@@ -475,7 +488,9 @@ Configures the expiration warning time in days.
 
 .SS \fB[HtmlSyntaxCheck]\fP
 Check the syntax of HTML pages with the online W3C HTML validator.
-See http://validator.w3.org/docs/api.html.
+See
+.UR https://validator.w3.org/docs/api.html
+.UE .
 
 .SS \fB[HttpHeaderInfo]\fP
 Print HTTP headers in URL info.
@@ -486,7 +501,9 @@ to display all HTTP headers that start with "X-".
 
 .SS \fB[CssSyntaxCheck]\fP
 Check the syntax of HTML pages with the online W3C CSS validator.
-See http://jigsaw.w3.org/css-validator/manual.html#expert.
+See
+.UR https://jigsaw.w3.org/css-validator/manual.html#expert
+.UE .
 
 .SS \fB[VirusCheck]\fP
 Checks the page content for virus infections with clamav.
@@ -551,7 +568,7 @@ The IP is obfuscated.
 The URL contains leading or trailing whitespace.
 
 .SH "SEE ALSO"
-linkchecker(1)
+.BR linkchecker (1)
 .
 .SH AUTHOR
 Bastian Kleineidam <bastian.kleineidam@web.de>

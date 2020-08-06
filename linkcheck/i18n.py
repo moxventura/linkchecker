@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -31,43 +30,35 @@ default_language = default_encoding = None
 default_directory = None
 default_domain = None
 
-def install_builtin (translator, do_unicode):
-    """Install _() and _n() gettext methods into default namespace."""
-    try:
-        import __builtin__ as builtins
-    except ImportError:
-        # Python 3
-        import builtins
-    # Python 3 has no ugettext
-    has_unicode = hasattr(translator, 'ugettext')
-    if do_unicode and has_unicode:
-        builtins.__dict__['_'] = translator.ugettext
-        # also install ngettext
-        builtins.__dict__['_n'] = translator.ungettext
-    else:
-        builtins.__dict__['_'] = translator.gettext
-        # also install ngettext
-        builtins.__dict__['_n'] = translator.ngettext
 
-class Translator (gettext.GNUTranslations):
+def install_builtin(translator, do_unicode):
+    """Install _() and _n() gettext methods into default namespace."""
+    import builtins
+
+    builtins.__dict__['_'] = translator.gettext
+    # also install ngettext
+    builtins.__dict__['_n'] = translator.ngettext
+
+
+class Translator(gettext.GNUTranslations):
     """A translation class always installing its gettext methods into the
     default namespace."""
 
-    def install (self, do_unicode):
+    def install(self, do_unicode):
         """Install gettext methods into the default namespace."""
         install_builtin(self, do_unicode)
 
 
-class NullTranslator (gettext.NullTranslations):
+class NullTranslator(gettext.NullTranslations):
     """A dummy translation class always installing its gettext methods into
     the default namespace."""
 
-    def install (self, do_unicode):
+    def install(self, do_unicode):
         """Install gettext methods into the default namespace."""
         install_builtin(self, do_unicode)
 
 
-def init (domain, directory, loc=None):
+def init(domain, directory, loc=None):
     """Initialize this gettext i18n module. Searches for supported languages
     and installs the gettext translator class."""
     global default_language, default_encoding, default_domain, default_directory
@@ -96,31 +87,42 @@ def init (domain, directory, loc=None):
 
 def install_language(language):
     """Install translation service routines into default namespace."""
-    translator = get_translator(default_domain, default_directory,
-        languages=[get_lang(language)], fallback=True)
+    translator = get_translator(
+        default_domain, default_directory, languages=[get_lang(language)], fallback=True
+    )
     do_unicode = True
     translator.install(do_unicode)
 
 
-def get_translator (domain, directory, languages=None,
-                    translatorklass=Translator, fallback=False,
-                    fallbackklass=NullTranslator):
+def get_translator(
+    domain,
+    directory,
+    languages=None,
+    translatorklass=Translator,
+    fallback=False,
+    fallbackklass=NullTranslator,
+):
     """Search the appropriate GNUTranslations class."""
-    translator = gettext.translation(domain, localedir=directory,
-            languages=languages, class_=translatorklass, fallback=fallback)
+    translator = gettext.translation(
+        domain,
+        localedir=directory,
+        languages=languages,
+        class_=translatorklass,
+        fallback=fallback,
+    )
     if not isinstance(translator, gettext.GNUTranslations) and fallbackklass:
         translator = fallbackklass()
     return translator
 
 
-def get_lang (lang):
+def get_lang(lang):
     """Return lang if it is supported, or the default language."""
     if lang in supported_languages:
         return lang
     return default_language
 
 
-def get_headers_lang (headers):
+def get_headers_lang(headers):
     """Return preferred supported language in given HTTP headers."""
     if 'Accept-Language' not in headers:
         return default_language
@@ -144,7 +146,7 @@ def get_headers_lang (headers):
     return default_language
 
 
-def get_locale ():
+def get_locale():
     """Search the default platform locale and norm it.
     @returns (locale, encoding)
     @rtype (string, string)"""
@@ -162,7 +164,7 @@ def get_locale ():
     return (loc, encoding)
 
 
-def norm_locale (loc):
+def norm_locale(loc):
     """Normalize a locale."""
     loc = locale.normalize(loc)
     # split up the locale into its base components
@@ -179,29 +181,28 @@ def norm_locale (loc):
 
 
 lang_names = {
-    'en': u'English',
-    'de': u'Deutsch',
+    'en': 'English',
+    'de': 'Deutsch',
 }
 lang_transis = {
-    'de': {'en': u'German'},
-    'en': {'de': u'Englisch'},
+    'de': {'en': 'German'},
+    'en': {'de': 'Englisch'},
 }
 
-def lang_name (lang):
+
+def lang_name(lang):
     """Return full name of given language."""
     return lang_names[lang]
 
 
-def lang_trans (lang, curlang):
+def lang_trans(lang, curlang):
     """Return translated full name of given language."""
     return lang_transis[lang][curlang]
 
 
-def get_encoded_writer (out=sys.stdout, encoding=None, errors='replace'):
+def get_encoded_writer(out=sys.stdout, encoding=None, errors='replace'):
     """Get wrapped output writer with given encoding and error handling."""
     if encoding is None:
         encoding = default_encoding
     Writer = codecs.getwriter(encoding)
-    # Use sys.stdout.buffer on Python 3, but sys.stdout itself on Python 2
-    buffer = getattr(out, 'buffer', out)
-    return Writer(buffer, errors)
+    return Writer(out.buffer, errors)

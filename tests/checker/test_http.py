@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2004-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,46 +17,53 @@
 Test http checking.
 """
 
-import pytest
-
 from tests import need_network
 from .httpserver import HttpServerTest, CookieRedirectHttpRequestHandler
 
-class TestHttp (HttpServerTest):
+
+class TestHttp(HttpServerTest):
     """Test http:// link checking."""
 
-    def __init__(self, methodName='runTest'):
-        super(TestHttp, self).__init__(methodName=methodName)
+    def __init__(self, methodName="runTest"):
+        super().__init__(methodName=methodName)
         self.handler = CookieRedirectHttpRequestHandler
 
     @need_network
-    def test_html (self):
+    def test_html_internet(self):
         confargs = dict(recursionlevel=1)
         self.file_test("http.html", confargs=confargs)
         self.file_test("http_lowercase.html", confargs=confargs)
         self.file_test("http_quotes.html", confargs=confargs)
         self.file_test("http_slash.html", confargs=confargs)
-        self.file_test("http.xhtml", confargs=confargs)
+        self.file_test("http_url_quote.html", confargs=confargs)
+
+    def test_html(self):
+        confargs = dict(recursionlevel=1)
+        self.file_test("http_empty.html", confargs=confargs)
         self.file_test("http_file.html", confargs=confargs)
         self.file_test("http_utf8.html", confargs=confargs)
-        self.file_test("http_url_quote.html", confargs=confargs)
+        self.file_test("http.xhtml", confargs=confargs)
 
     def test_status(self):
         for status in sorted(self.handler.responses.keys()):
             self._test_status(status)
 
     def _test_status(self, status):
-        url = u"http://localhost:%d/status/%d" % (self.port, status)
+        url = "http://localhost:%d/status/%d" % (self.port, status)
         resultlines = [
-            u"url %s" % url,
-            u"cache key %s" % url,
-            u"real url %s" % url,
+            "url %s" % url,
+            "cache key %s" % url,
+            "real url %s" % url,
         ]
         if status in (204,):
-            resultlines.append(u"warning No Content")
-        if (status not in [101, 102] and status < 200) or status >= 400:
-            result = u"error"
+            resultlines.append("warning No Content")
+        if status == 429:
+            resultlines.append("warning Rate limited (Retry-After: None)")
+        if (status not in [101, 102] and status < 200) or (
+            status >= 400 and status != 429
+        ):
+            result = "error"
         else:
-            result = u"valid"
+            result = "valid"
         resultlines.append(result)
         self.direct(url, resultlines, recursionlevel=0)

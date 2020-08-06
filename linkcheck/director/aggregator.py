@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2006-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,22 +17,15 @@
 Aggregate needed object instances for checker threads.
 """
 import threading
-try:  # Python 3
-    import _thread
-except ImportError:
-    import thread as _thread
 
 import requests
 import time
-try:  # Python 3
-    from urllib import parse
-except ImportError:
-    import urlparse as parse
+import urllib.parse
 import random
 from .. import log, LOG_CHECK, strformat, LinkCheckerError
 from ..decorators import synchronized
 from ..cache import urlqueue
-from ..htmlutil import formsearch
+from ..htmlutil import loginformsearch
 from ..cookies import from_file
 from . import logger, status, checker, interrupt
 
@@ -42,26 +34,26 @@ _threads_lock = threading.RLock()
 _hosts_lock = threading.RLock()
 _downloadedbytes_lock = threading.RLock()
 
+
 def new_request_session(config, cookies):
     """Create a new request session."""
     session = requests.Session()
     if cookies:
         session.cookies = cookies
     session.max_redirects = config["maxhttpredirects"]
-    session.headers.update({
-        "User-Agent": config["useragent"],
-    })
+    session.headers.update(
+        {"User-Agent": config["useragent"]}
+    )
     if config["cookiefile"]:
         for cookie in from_file(config["cookiefile"]):
             session.cookies.set_cookie(cookie)
     return session
 
 
-class Aggregate (object):
+class Aggregate:
     """Store thread-safe data collections for checker threads."""
 
-    def __init__ (self, config, urlqueue, robots_txt, plugin_manager,
-                  result_cache):
+    def __init__(self, config, urlqueue, robots_txt, plugin_manager, result_cache):
         """Store given link checking objects."""
         self.config = config
         self.urlqueue = urlqueue
@@ -84,25 +76,38 @@ class Aggregate (object):
         if not url:
             return
         user, password = self.config.get_user_password(url)
-        session = requests.Session()
-        # XXX user-agent header
-        # XXX timeout
-        response = session.get(url)
-        cgiuser = self.config["loginuserfield"]
-        cgipassword = self.config["loginpasswordfield"]
-        form = formsearch.search_form(response.text, cgiuser, cgipassword)
-        form.data[cgiuser] = user
-        form.data[cgipassword] = password
+        if not user and not password:
+            raise LinkCheckerError(
+                "loginurl is configured but neither user nor password are set"
+            )
+        session = new_request_session(self.config, self.cookies)
+        log.debug(LOG_CHECK, "Getting login form %s", url)
+        kwargs = dict(timeout=self.config["timeout"])
+        # XXX: proxy?  sslverify?  can we reuse HttpUrl.get_request_kwargs()
+        # somehow?
+        response = session.get(url, **kwargs)
+        response.raise_for_status()
+        cgiuser = self.config["loginuserfield"] if user else None
+        cgipassword = self.config["loginpasswordfield"] if password else None
+        form = loginformsearch.search_form(response.text, cgiuser, cgipassword)
+        if not form:
+            raise LinkCheckerError("Login form not found at %s" % url)
+        if user:
+            form.data[cgiuser] = user
+        if password:
+            form.data[cgipassword] = password
         for key, value in self.config["loginextrafields"].items():
             form.data[key] = value
-        formurl = parse.urljoin(url, form.url)
-        response = session.post(formurl, data=form.data)
+        formurl = urllib.parse.urljoin(url, form.url)
+        log.debug(LOG_CHECK, "Posting login data to %s", formurl)
+        response = session.post(formurl, data=form.data, **kwargs)
+        response.raise_for_status()
         self.cookies = session.cookies
         if len(self.cookies) == 0:
             raise LinkCheckerError("No cookies set by login URL %s" % url)
 
     @synchronized(_threads_lock)
-    def start_threads (self):
+    def start_threads(self):
         """Spawn threads for URL checking and status printing."""
         if self.config["status"]:
             t = status.Status(self, self.config["status_wait_seconds"])
@@ -115,23 +120,27 @@ class Aggregate (object):
         num = self.config["threads"]
         if num > 0:
             for dummy in range(num):
-                t = checker.Checker(self.urlqueue, self.logger, self.add_request_session)
+                t = checker.Checker(
+                    self.urlqueue, self.logger, self.add_request_session
+                )
                 self.threads.append(t)
                 t.start()
         else:
-            self.request_sessions[_thread.get_ident()] = new_request_session(self.config, self.cookies)
+            self.request_sessions[threading.get_ident()] = new_request_session(
+                self.config, self.cookies
+            )
             checker.check_urls(self.urlqueue, self.logger)
 
     @synchronized(_threads_lock)
     def add_request_session(self):
         """Add a request session for current thread."""
         session = new_request_session(self.config, self.cookies)
-        self.request_sessions[_thread.get_ident()] = session
+        self.request_sessions[threading.get_ident()] = session
 
     @synchronized(_threads_lock)
     def get_request_session(self):
         """Get the request session for current thread."""
-        return self.request_sessions[_thread.get_ident()]
+        return self.request_sessions[threading.get_ident()]
 
     @synchronized(_hosts_lock)
     def wait_for_host(self, host):
@@ -147,7 +156,7 @@ class Aggregate (object):
         self.times[host] = t + wait_time
 
     @synchronized(_threads_lock)
-    def print_active_threads (self):
+    def print_active_threads(self):
         """Log all currently active threads."""
         debug = log.is_debug(LOG_CHECK)
         if debug:
@@ -158,10 +167,19 @@ class Aggregate (object):
                     first = False
                 log.info(LOG_CHECK, name[12:])
         args = dict(
-            num=len([x for x in self.threads if x.getName().startswith("CheckThread-")]),
+            num=len(
+                [x for x in self.threads if x.getName().startswith("CheckThread-")]
+            ),
             timeout=strformat.strduration_long(self.config["aborttimeout"]),
         )
-        log.info(LOG_CHECK, _("%(num)d URLs are still active. After a timeout of %(timeout)s the active URLs will stop.") % args)
+        log.info(
+            LOG_CHECK,
+            _(
+                "%(num)d URLs are still active. After a timeout of %(timeout)s"
+                " the active URLs will stop."
+            )
+            % args,
+        )
 
     @synchronized(_threads_lock)
     def get_check_threads(self):
@@ -171,11 +189,11 @@ class Aggregate (object):
             if name.startswith("CheckThread-"):
                 yield name
 
-    def cancel (self):
+    def cancel(self):
         """Empty the URL queue."""
         self.urlqueue.do_shutdown()
 
-    def abort (self):
+    def abort(self):
         """Print still-active URLs and empty the URL queue."""
         self.print_active_threads()
         self.cancel()
@@ -183,16 +201,19 @@ class Aggregate (object):
         try:
             self.urlqueue.join(timeout=timeout)
         except urlqueue.Timeout:
-            log.warn(LOG_CHECK, "Abort timed out after %d seconds, stopping application." % timeout)
+            log.warn(
+                LOG_CHECK,
+                "Abort timed out after %d seconds, stopping application." % timeout,
+            )
             raise KeyboardInterrupt()
 
     @synchronized(_threads_lock)
-    def remove_stopped_threads (self):
+    def remove_stopped_threads(self):
         """Remove the stopped threads from the internal thread list."""
         self.threads = [t for t in self.threads if t.is_alive()]
 
     @synchronized(_threads_lock)
-    def finish (self):
+    def finish(self):
         """Wait for checker threads to finish."""
         if not self.urlqueue.empty():
             # This happens when all checker threads died.
@@ -203,7 +224,7 @@ class Aggregate (object):
             t.join(timeout=1.0)
 
     @synchronized(_threads_lock)
-    def is_finished (self):
+    def is_finished(self):
         """Determine if checking is finished."""
         self.remove_stopped_threads()
         return self.urlqueue.empty() and not self.threads
@@ -215,8 +236,9 @@ class Aggregate (object):
 
     def end_log_output(self, **kwargs):
         """Print ending output to log."""
-        kwargs.update(dict(
-            downloaded_bytes=self.downloaded_bytes,
-            num_urls = len(self.result_cache),
-        ))
+        kwargs.update(
+            dict(
+                downloaded_bytes=self.downloaded_bytes, num_urls=len(self.result_cache),
+            )
+        )
         self.logger.end_log_output(**kwargs)

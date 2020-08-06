@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -19,9 +18,10 @@ Main functions for link parsing
 """
 from xml.parsers.expat import ParserCreate
 from xml.parsers.expat import ExpatError
-from ..checker.const import (WARN_XML_PARSE_ERROR)
+from ..checker.const import WARN_XML_PARSE_ERROR
 
-class XmlTagUrlParser(object):
+
+class XmlTagUrlParser:
     """Parse XML files and find URLs in text content of a tag name."""
 
     def __init__(self, tag):
@@ -29,10 +29,6 @@ class XmlTagUrlParser(object):
         self.tag = tag
         self.parser = ParserCreate()
         self.parser.buffer_text = True
-        try:
-            self.parser.returns_unicode = True
-        except AttributeError:
-            pass  # Python 3
         self.parser.StartElementHandler = self.start_element
         self.parser.EndElementHandler = self.end_element
         self.parser.CharacterDataHandler = self.char_data
@@ -41,18 +37,18 @@ class XmlTagUrlParser(object):
         """Parse XML URL data."""
         self.url_data = url_data
         self.in_tag = False
-        self.url = u""
+        self.url = ""
         data = url_data.get_raw_content()
         isfinal = True
         try:
             self.parser.Parse(data, isfinal)
         except ExpatError as expaterr:
-            self.url_data.add_warning(expaterr.message,tag=WARN_XML_PARSE_ERROR)
+            self.url_data.add_warning(expaterr.message, tag=WARN_XML_PARSE_ERROR)
 
     def start_element(self, name, attrs):
         """Set tag status for start element."""
-        self.in_tag = (name == self.tag)
-        self.url = u""
+        self.in_tag = name == self.tag
+        self.url = ""
 
     def end_element(self, name):
         """If end tag is our tag, call add_url()."""
@@ -63,9 +59,12 @@ class XmlTagUrlParser(object):
     def add_url(self):
         """Add non-empty URLs to the queue."""
         if self.url:
-            self.url_data.add_url(self.url, line=self.parser.CurrentLineNumber,
-                column=self.parser.CurrentColumnNumber)
-            self.url = u""
+            self.url_data.add_url(
+                self.url,
+                line=self.parser.CurrentLineNumber,
+                column=self.parser.CurrentColumnNumber,
+            )
+            self.url = ""
 
     def char_data(self, data):
         """If inside the wanted tag, append data to URL."""
@@ -75,9 +74,9 @@ class XmlTagUrlParser(object):
 
 def parse_sitemap(url_data):
     """Parse XML sitemap data."""
-    XmlTagUrlParser(u"loc").parse(url_data)
+    XmlTagUrlParser("loc").parse(url_data)
 
 
 def parse_sitemapindex(url_data):
     """Parse XML sitemap index data."""
-    XmlTagUrlParser(u"loc").parse(url_data)
+    XmlTagUrlParser("loc").parse(url_data)

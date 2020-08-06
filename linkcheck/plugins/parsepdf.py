@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,9 +17,9 @@
 Parse links in PDF files with pdfminer.
 """
 from io import BytesIO
-from builtins import str as str_text
 
 from . import _ParserPlugin
+
 try:
     from pdfminer.pdfparser import PDFParser
     from pdfminer.pdfdocument import PDFDocument
@@ -31,8 +30,7 @@ except ImportError:
     has_pdflib = False
 else:
     has_pdflib = True
-from .. import log, LOG_PLUGIN, strformat
-
+from .. import log, LOG_PLUGIN
 
 
 def search_url(obj, url_data, pageno, seen_objs):
@@ -46,14 +44,7 @@ def search_url(obj, url_data, pageno, seen_objs):
     if isinstance(obj, dict):
         for key, value in obj.items():
             if key == 'URI':
-                if isinstance(value, str_text):
-                    url = value
-                else:
-                    # URIs should be 7bit ASCII encoded, but be safe and encode
-                    # to unicode
-                    # XXX this does not use an optional specified base URL
-                    url = strformat.unicode_safe(value)
-                url_data.add_url(url, page=pageno)
+                url_data.add_url(value.decode("ascii"), page=pageno)
             else:
                 search_url(value, url_data, pageno, seen_objs)
     elif isinstance(obj, list):
@@ -70,7 +61,7 @@ class PdfParser(_ParserPlugin):
         """Check for pdfminer."""
         if not has_pdflib:
             log.warn(LOG_PLUGIN, "pdfminer not found for PdfParser plugin")
-        super(PdfParser, self).__init__(config)
+        super().__init__(config)
 
     def applies_to(self, url_data, pagetype=None):
         """Check for PDF pagetype."""

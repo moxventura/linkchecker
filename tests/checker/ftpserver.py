@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2010-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -27,21 +26,22 @@ from . import LinkCheckTest
 
 TIMEOUT = 5
 
-class FtpServerTest (LinkCheckTest):
+
+class FtpServerTest(LinkCheckTest):
     """Start/stop an FTP server that can be used for testing."""
 
-    def __init__ (self, methodName='runTest'):
+    def __init__(self, methodName="runTest"):
         """Init test class and store default ftp server port."""
-        super(FtpServerTest, self).__init__(methodName=methodName)
-        self.host = 'localhost'
+        super().__init__(methodName=methodName)
+        self.host = "localhost"
         self.port = None
 
-    def setUp (self):
+    def setUp(self):
         """Start a new FTP server in a new thread."""
         self.port = start_server(self.host, 0)
         self.assertFalse(self.port is None)
 
-    def tearDown (self):
+    def tearDown(self):
         """Send stop request to server."""
         try:
             stop_server(self.host, self.port)
@@ -49,7 +49,7 @@ class FtpServerTest (LinkCheckTest):
             pass
 
 
-def start_server (host, port):
+def start_server(host, port):
     def line_logger(self, msg):
         if "kill" in msg:
             raise KeyboardInterrupt()
@@ -63,7 +63,7 @@ def start_server (host, port):
         pytest.skip("pyftpdlib is not available")
         return
     authorizer = DummyAuthorizer()
-    datadir = os.path.join(os.path.dirname(__file__), 'data')
+    datadir = os.path.join(os.path.dirname(__file__), "data")
     authorizer.add_anonymous(datadir)
 
     # Instantiate FTP handler class
@@ -91,12 +91,12 @@ def start_server (host, port):
             ftp.login()
             ftp.close()
             break
-        except:
+        except Exception:
             time.sleep(0.5)
     return port
 
 
-def stop_server (host, port):
+def stop_server(host, port):
     """Stop a running FTP server."""
     ftp = FTP()
     ftp.connect(host, port, TIMEOUT)

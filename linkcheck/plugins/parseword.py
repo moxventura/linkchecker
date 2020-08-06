@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2010-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,9 +17,11 @@
 Parse hyperlinks in Word files.
 """
 from . import _ParserPlugin
+
 try:
     import win32com
     import pythoncom
+
     has_win32com = True
     Error = pythoncom.com_error
 except ImportError:
@@ -30,14 +31,17 @@ from .. import fileutil, log, LOG_PLUGIN
 
 
 _initialized = False
-def init_win32com ():
+
+
+def init_win32com():
     """Initialize the win32com.client cache."""
     global _initialized
     if _initialized:
         return
     import win32com.client
+
     if win32com.client.gencache.is_readonly:
-        #allow gencache to create the cached wrapper objects
+        # allow gencache to create the cached wrapper objects
         win32com.client.gencache.is_readonly = False
         # under py2exe the call in gencache to __init__() does not happen
         # so we use Rebuild() to force the creation of the gen_py folder
@@ -48,7 +52,7 @@ def init_win32com ():
     _initialized = True
 
 
-def has_word ():
+def has_word():
     """Determine if Word is available on the current system."""
     if not has_win32com:
         return False
@@ -65,13 +69,13 @@ def has_word ():
     return False
 
 
-def constants (name):
+def constants(name):
     """Helper to return constants. Avoids importing win32com.client in
     other modules."""
     return getattr(win32com.client.constants, name)
 
 
-def get_word_app ():
+def get_word_app():
     """Return open Word.Application handle, or None if Word is not available
     on this system."""
     if not has_word():
@@ -80,23 +84,29 @@ def get_word_app ():
     # the COM layer.
     pythoncom.CoInitialize()
     import win32com.client
+
     app = win32com.client.gencache.EnsureDispatch("Word.Application")
     app.Visible = False
     return app
 
 
-def close_word_app (app):
+def close_word_app(app):
     """Close Word application object."""
     app.Quit()
 
 
-def open_wordfile (app, filename):
+def open_wordfile(app, filename):
     """Open given Word file with application object."""
-    return app.Documents.Open(filename, ReadOnly=True,
-      AddToRecentFiles=False, Visible=False, NoEncodingDialog=True)
+    return app.Documents.Open(
+        filename,
+        ReadOnly=True,
+        AddToRecentFiles=False,
+        Visible=False,
+        NoEncodingDialog=True,
+    )
 
 
-def close_wordfile (doc):
+def close_wordfile(doc):
     """Close word file."""
     doc.Close()
 
@@ -109,7 +119,7 @@ class WordParser(_ParserPlugin):
         init_win32com()
         if not has_word():
             log.warn(LOG_PLUGIN, "Microsoft Word not found for WordParser plugin")
-        super(WordParser, self).__init__(config)
+        super().__init__(config)
 
     def applies_to(self, url_data, pagetype=None):
         """Check for Word pagetype."""
@@ -129,7 +139,7 @@ class WordParser(_ParserPlugin):
                 try:
                     for link in doc.Hyperlinks:
                         line = get_line_number(link.Range)
-                        name=link.TextToDisplay
+                        name = link.TextToDisplay
                         url_data.add_url(link.Address, name=name, line=line)
                 finally:
                     close_wordfile(doc)
@@ -156,14 +166,12 @@ def get_line_number(doc, wrange):
     return lineno
 
 
-def get_temp_filename (content):
+def get_temp_filename(content):
     """Get temporary filename for content to parse."""
     # store content in temporary file
-    fd, filename = fileutil.get_temp_file(mode='wb', suffix='.doc',
-        prefix='lc_')
+    fd, filename = fileutil.get_temp_file(mode='wb', suffix='.doc', prefix='lc_')
     try:
         fd.write(content)
     finally:
         fd.close()
     return filename
-

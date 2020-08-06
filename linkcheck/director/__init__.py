@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2006-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,32 +17,30 @@
 Management of checking a queue of links with several threads.
 """
 import os
-try: # Python 3
-    from _thread import error as thread_error
-except ImportError: # Python 2
-    from thread import error as thread_error
 import time
-from .. import log, LOG_CHECK, LinkCheckerInterrupt, plugins
+
+from .. import log, LOG_CHECK, LinkCheckerError, LinkCheckerInterrupt, plugins
 from ..cache import urlqueue, robots_txt, results
 from . import aggregator, console
 
 
-def check_urls (aggregate):
+def check_urls(aggregate):
     """Main check function; checks all configured URLs until interrupted
     with Ctrl-C.
     @return: None
     """
     try:
         aggregate.visit_loginurl()
+    except LinkCheckerError as msg:
+        log.warn(LOG_CHECK, _("Problem using login URL: %(msg)s.") % dict(msg=msg))
+        return
     except Exception as msg:
-        log.warn(LOG_CHECK, _("Error using login URL: %(msg)s.") % \
-                 dict(msg=msg))
+        log.warn(LOG_CHECK, _("Error using login URL: %(msg)s.") % dict(msg=msg))
         raise
     try:
         aggregate.logger.start_log_output()
     except Exception as msg:
-        log.error(LOG_CHECK, _("Error starting log output: %(msg)s.") % \
-            dict(msg=msg))
+        log.error(LOG_CHECK, _("Error starting log output: %(msg)s.") % dict(msg=msg))
         raise
     try:
         if not aggregate.urlqueue.empty():
@@ -55,10 +52,14 @@ def check_urls (aggregate):
         raise
     except KeyboardInterrupt:
         interrupt(aggregate)
-    except thread_error:
-        log.warn(LOG_CHECK,
-             _("Could not start a new thread. Check that the current user" \
-               " is allowed to start new threads."))
+    except RuntimeError:
+        log.warn(
+            LOG_CHECK,
+            _(
+                "Could not start a new thread. Check that the current user"
+                " is allowed to start new threads."
+            ),
+        )
         abort(aggregate)
     except Exception:
         # Catching "Exception" is intentionally done. This saves the program
@@ -70,7 +71,7 @@ def check_urls (aggregate):
     # and both should be handled by the calling layer.
 
 
-def check_url (aggregate):
+def check_url(aggregate):
     """Helper function waiting for URL queue."""
     while True:
         try:
@@ -83,22 +84,20 @@ def check_url (aggregate):
                 break
 
 
-def interrupt (aggregate):
+def interrupt(aggregate):
     """Interrupt execution and shutdown, ignoring any subsequent
     interrupts."""
     while True:
         try:
-            log.warn(LOG_CHECK,
-               _("interrupt; waiting for active threads to finish"))
-            log.warn(LOG_CHECK,
-               _("another interrupt will exit immediately"))
+            log.warn(LOG_CHECK, _("interrupt; waiting for active threads to finish"))
+            log.warn(LOG_CHECK, _("another interrupt will exit immediately"))
             abort(aggregate)
             break
         except KeyboardInterrupt:
             pass
 
 
-def abort (aggregate):
+def abort(aggregate):
     """Helper function to ensure a clean shutdown."""
     while True:
         try:
@@ -112,11 +111,12 @@ def abort (aggregate):
             abort_now()
 
 
-def abort_now ():
+def abort_now():
     """Force exit of current process without cleanup."""
     if os.name == 'posix':
         # Unix systems can use signals
         import signal
+
         os.kill(os.getpid(), signal.SIGTERM)
         time.sleep(1)
         os.kill(os.getpid(), signal.SIGKILL)
@@ -128,11 +128,12 @@ def abort_now ():
         os._exit(3)
 
 
-def get_aggregate (config):
+def get_aggregate(config):
     """Get an aggregator instance with given configuration."""
     _urlqueue = urlqueue.UrlQueue(max_allowed_urls=config["maxnumurls"])
     _robots_txt = robots_txt.RobotsTxt(config["useragent"])
     plugin_manager = plugins.PluginManager(config)
     result_cache = results.ResultCache()
-    return aggregator.Aggregate(config, _urlqueue, _robots_txt, plugin_manager,
-        result_cache)
+    return aggregator.Aggregate(
+        config, _urlqueue, _robots_txt, plugin_manager, result_cache
+    )

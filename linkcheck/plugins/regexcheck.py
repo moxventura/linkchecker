@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -36,7 +35,7 @@ class RegexCheck(_ContentPlugin):
 
     def __init__(self, config):
         """Set warning regex from config."""
-        super(RegexCheck, self).__init__(config)
+        super().__init__(config)
         self.warningregex = None
         pattern = config["warningregex"]
         if pattern:

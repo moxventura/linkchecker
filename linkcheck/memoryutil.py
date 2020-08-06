@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2012-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -23,9 +22,9 @@ from . import strformat, log, LOG_CHECK
 from .fileutil import get_temp_file
 
 # Message to display when meliae package is not installed
-MemoryDebugMsg = strformat.format_feature_warning(module=u'meliae',
-            feature=u'memory debugging',
-            url=u'https://launchpad.net/meliae')
+MemoryDebugMsg = strformat.format_feature_warning(
+    module='meliae', feature='memory debugging', url='https://launchpad.net/meliae'
+)
 
 
 def write_memory_dump():
@@ -38,10 +37,10 @@ def write_memory_dump():
     if gc.garbage:
         log.warn(LOG_CHECK, "Unreachabe objects: %s", pprint.pformat(gc.garbage))
     from meliae import scanner
+
     fo, filename = get_temp_file(mode='wb', suffix='.json', prefix='lcdump_')
     try:
         scanner.dump_all_objects(fo)
     finally:
         fo.close()
     return filename
-

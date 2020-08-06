@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2005-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -26,13 +25,13 @@ import linkcheck.configuration
 import linkcheck.director
 
 
-class TestCookies (unittest.TestCase):
+class TestCookies(unittest.TestCase):
     """Test cookie routines."""
 
-    def test_cookie_parse_multiple_headers (self):
+    def test_cookie_parse_multiple_headers(self):
         lines = [
-            'Host: example.org',
-            'Path: /hello',
+            "Host: example.org",
+            "Path: /hello",
             'Set-cookie: ID="smee"',
             'Set-cookie: spam="egg"',
         ]
@@ -42,14 +41,14 @@ class TestCookies (unittest.TestCase):
         for cookie in cookies:
             self.assertEqual(cookie.domain, "example.org")
             self.assertEqual(cookie.path, "/hello")
-        self.assertEqual(cookies[0].name, 'ID')
-        self.assertEqual(cookies[0].value, 'smee')
-        self.assertEqual(cookies[1].name, 'spam')
-        self.assertEqual(cookies[1].value, 'egg')
+        self.assertEqual(cookies[0].name, "ID")
+        self.assertEqual(cookies[0].value, "smee")
+        self.assertEqual(cookies[1].name, "spam")
+        self.assertEqual(cookies[1].value, "egg")
 
-    def test_cookie_parse_multiple_values (self):
+    def test_cookie_parse_multiple_values(self):
         lines = [
-            'Host: example.org',
+            "Host: example.org",
             'Set-cookie: baggage="elitist"; comment="hologram"',
         ]
         from_headers = linkcheck.cookies.from_headers
@@ -58,26 +57,25 @@ class TestCookies (unittest.TestCase):
         for cookie in cookies:
             self.assertEqual(cookie.domain, "example.org")
             self.assertEqual(cookie.path, "/")
-        self.assertEqual(cookies[0].name, 'baggage')
-        self.assertEqual(cookies[0].value, 'elitist')
-        self.assertEqual(cookies[1].name, 'comment')
-        self.assertEqual(cookies[1].value, 'hologram')
+        self.assertEqual(cookies[0].name, "baggage")
+        self.assertEqual(cookies[0].value, "elitist")
+        self.assertEqual(cookies[1].name, "comment")
+        self.assertEqual(cookies[1].value, "hologram")
 
-    def test_cookie_parse_error (self):
+    def test_cookie_parse_error(self):
         lines = [
-            ' Host: imaweevil.org',
+            " Host: imaweevil.org",
             'Set-cookie: baggage="elitist"; comment="hologram"',
         ]
         from_headers = linkcheck.cookies.from_headers
         self.assertRaises(ValueError, from_headers, "\r\n".join(lines))
 
-    def test_cookie_file (self):
+    def test_cookie_file(self):
         # Regression test for https://github.com/linkchecker/linkchecker/issues/62
         config = linkcheck.configuration.Configuration()
         here = os.path.dirname(__file__)
-        config['cookiefile'] = os.path.join(here, 'cookies.txt')
+        config["cookiefile"] = os.path.join(here, "cookies.txt")
         aggregate = linkcheck.director.get_aggregate(config)
         aggregate.add_request_session()
         session = aggregate.get_request_session()
-        self.assertEqual({c.name for c in session.cookies},
-                         {'om', 'multiple', 'are'})
+        self.assertEqual({c.name for c in session.cookies}, {"om", "multiple", "are"})

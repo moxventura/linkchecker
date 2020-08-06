@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -60,6 +59,7 @@ import os
 import logging
 import types
 from .fileutil import has_module, is_tty
+
 if os.name == 'nt':
     from . import colorama
 
@@ -80,16 +80,16 @@ concealed = 'concealed'
 
 # Control numbers
 AnsiControl = {
-    None:      '',
-    bold:      '1',
-    light:     '2',
-    #italic:   '3', # unsupported
+    None: '',
+    bold: '1',
+    light: '2',
+    # italic:   '3', # unsupported
     underline: '4',
-    blink:     '5',
-    #rapidblink: '6', # unsupported
-    invert:    '7',
+    blink: '5',
+    # rapidblink: '6', # unsupported
+    invert: '7',
     concealed: '8',
-    #strikethrough: '9', # unsupported
+    # strikethrough: '9', # unsupported
 }
 
 # Color constants
@@ -117,61 +117,62 @@ InverseColors = (Black, Red, Green, Yellow, Blue, Purple, Cyan, White)
 
 # Ansi color numbers; capitalized colors are inverse
 AnsiColor = {
-    None:    '0',
+    None: '0',
     default: '0',
-    black:   '30',
-    red:     '31',
-    green:   '32',
-    yellow:  '33',
-    blue:    '34',
-    purple:  '35',
-    cyan:    '36',
-    white:   '37',
-    Black:   '40',
-    Red:     '41',
-    Green:   '42',
-    Yellow:  '43',
-    Blue:    '44',
-    Purple:  '45',
-    Cyan:    '46',
-    White:   '47',
+    black: '30',
+    red: '31',
+    green: '32',
+    yellow: '33',
+    blue: '34',
+    purple: '35',
+    cyan: '36',
+    white: '37',
+    Black: '40',
+    Red: '41',
+    Green: '42',
+    Yellow: '43',
+    Blue: '44',
+    Purple: '45',
+    Cyan: '46',
+    White: '47',
 }
 
 if os.name == 'nt':
     # Windows color numbers; capitalized colors are used as background
     WinColor = {
-        None:    None,
+        None: None,
         default: colorama.GREY,
-        black:   colorama.BLACK,
-        red:     colorama.RED,
-        green:   colorama.GREEN,
-        yellow:  colorama.YELLOW,
-        blue:    colorama.BLUE,
-        purple:  colorama.MAGENTA,
-        cyan:    colorama.CYAN,
-        white:   colorama.GREY,
-        Black:   colorama.BLACK,
-        Red:     colorama.RED,
-        Green:   colorama.GREEN,
-        Yellow:  colorama.YELLOW,
-        Blue:    colorama.BLUE,
-        Purple:  colorama.MAGENTA,
-        Cyan:    colorama.CYAN,
-        White:   colorama.GREY,
+        black: colorama.BLACK,
+        red: colorama.RED,
+        green: colorama.GREEN,
+        yellow: colorama.YELLOW,
+        blue: colorama.BLUE,
+        purple: colorama.MAGENTA,
+        cyan: colorama.CYAN,
+        white: colorama.GREY,
+        Black: colorama.BLACK,
+        Red: colorama.RED,
+        Green: colorama.GREEN,
+        Yellow: colorama.YELLOW,
+        Blue: colorama.BLUE,
+        Purple: colorama.MAGENTA,
+        Cyan: colorama.CYAN,
+        White: colorama.GREY,
     }
 
 # pc speaker beep escape code
 Beep = "\007"
 
 
-def esc_ansicolor (color):
+def esc_ansicolor(color):
     """convert a named color definition to an escaped ANSI color"""
     control = ''
     if ";" in color:
         control, color = color.split(";", 1)
-        control = AnsiControl.get(control, '')+";"
+        control = AnsiControl.get(control, '') + ";"
     cnum = AnsiColor.get(color, '0')
-    return AnsiEsc % (control+cnum)
+    return AnsiEsc % (control + cnum)
+
 
 AnsiReset = esc_ansicolor(default)
 
@@ -192,7 +193,7 @@ def get_win_color(color):
     return foreground, background, style
 
 
-def has_colors (fp):
+def has_colors(fp):
     """Test if given file is an ANSI color enabled tty."""
     # The is_tty() function ensures that we do not colorize
     # redirected streams, as this is almost never what we want
@@ -202,6 +203,7 @@ def has_colors (fp):
         return True
     elif has_curses:
         import curses
+
         try:
             curses.setupterm(os.environ.get("TERM"), fp.fileno())
             # More than 8 colors are good enough.
@@ -211,7 +213,7 @@ def has_colors (fp):
     return False
 
 
-def get_columns (fp):
+def get_columns(fp):
     """Return number of columns for given file."""
     if not is_tty(fp):
         return 80
@@ -219,24 +221,24 @@ def get_columns (fp):
         return colorama.get_console_size().X
     if has_curses:
         import curses
+
         try:
             curses.setupterm(os.environ.get("TERM"), fp.fileno())
             return curses.tigetnum("cols")
         except curses.error:
-           pass
+            pass
     return 80
 
 
-def _write_color_colorama (fp, text, color):
+def _write_color_colorama(fp, text, color):
     """Colorize text with given color."""
     foreground, background, style = get_win_color(color)
-    colorama.set_console(foreground=foreground, background=background,
-      style=style)
+    colorama.set_console(foreground=foreground, background=background, style=style)
     fp.write(text)
     colorama.reset_console()
 
 
-def _write_color_ansi (fp, text, color):
+def _write_color_ansi(fp, text, color):
     """Colorize text with given color."""
     fp.write(esc_ansicolor(color))
     fp.write(text)
@@ -250,42 +252,41 @@ else:
     write_color = _write_color_ansi
 
 
-class Colorizer (object):
+class Colorizer:
     """Prints colored messages to streams."""
 
-    def __init__ (self, fp):
+    def __init__(self, fp):
         """Initialize with given stream (file-like object)."""
-        super(Colorizer, self).__init__()
         self.fp = fp
         if has_colors(fp):
             self.write = self._write_color
         else:
             self.write = self._write
 
-    def _write (self, text, color=None):
+    def _write(self, text, color=None):
         """Print text as-is."""
         self.fp.write(text)
 
-    def _write_color (self, text, color=None):
+    def _write_color(self, text, color=None):
         """Print text with given color. If color is None, print text as-is."""
         if color is None:
             self.fp.write(text)
         else:
             write_color(self.fp, text, color)
 
-    def __getattr__ (self, name):
+    def __getattr__(self, name):
         """Delegate attribute access to the stored stream object."""
         return getattr(self.fp, name)
 
 
-class ColoredStreamHandler (logging.StreamHandler, object):
+class ColoredStreamHandler(logging.StreamHandler):
     """Send colored log messages to streams (file-like objects)."""
 
-    def __init__ (self, strm=None):
+    def __init__(self, strm=None):
         """Log to given stream (a file-like object) or to stderr if
         strm is None.
         """
-        super(ColoredStreamHandler, self).__init__(strm)
+        super().__init__(strm)
         self.stream = Colorizer(self.stream)
         # standard log level colors (used by get_color)
         self.colors = {
@@ -295,12 +296,12 @@ class ColoredStreamHandler (logging.StreamHandler, object):
             logging.DEBUG: 'white',
         }
 
-    def get_color (self, record):
+    def get_color(self, record):
         """Get appropriate color according to log level.
         """
         return self.colors.get(record.levelno, 'default')
 
-    def emit (self, record):
+    def emit(self, record):
         """Emit a record.
 
         If a formatter is specified, it is used to format the record.
@@ -316,7 +317,6 @@ class ColoredStreamHandler (logging.StreamHandler, object):
             try:
                 self.stream.write("%s" % msg, color=color)
             except UnicodeError:
-                self.stream.write("%s" % msg.encode("UTF-8"),
-                                  color=color)
+                self.stream.write("%s" % msg.encode("UTF-8"), color=color)
         self.stream.write(os.linesep)
         self.flush()

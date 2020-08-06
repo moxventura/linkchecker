@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2011-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -14,46 +13,9 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import os
-
-# Windows filename encoding
-nt_filename_encoding="mbcs"
-
-# List of possible Opera bookmark files.
-OperaBookmarkFiles = (
-  "bookmarks.adr", # for Opera >= 10.0
-  "opera6.adr",
-)
 
 
-def get_profile_dir ():
-    """Return path where all profiles of current user are stored."""
-    if os.name == 'nt':
-        basedir = unicode(os.environ["APPDATA"], nt_filename_encoding)
-        dirpath = os.path.join(basedir, "Opera", "Opera")
-    elif os.name == 'posix':
-        dirpath = os.path.join(os.environ["HOME"], ".opera")
-    return dirpath
-
-
-def find_bookmark_file ():
-    """Return the bookmark file of the Opera profile.
-    Returns absolute filename if found, or empty string if no bookmark file
-    could be found.
-    """
-    try:
-        dirname = get_profile_dir()
-        if os.path.isdir(dirname):
-            for name in OperaBookmarkFiles:
-                fname = os.path.join(dirname, name)
-                if os.path.isfile(fname):
-                    return fname
-    except Exception:
-        pass
-    return u""
-
-
-def parse_bookmark_data (data):
+def parse_bookmark_data(data):
     """Return iterator for bookmarks of the form (url, name, line number).
     Bookmarks are not sorted.
     """

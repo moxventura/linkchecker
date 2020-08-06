@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2012 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -26,13 +25,14 @@ from . import LinkCheckTest
 
 TIMEOUT = 5
 
-class TelnetServerTest (LinkCheckTest):
+
+class TelnetServerTest(LinkCheckTest):
     """Start/stop a Telnet server that can be used for testing."""
 
-    def __init__ (self, methodName='runTest'):
+    def __init__(self, methodName="runTest"):
         """Init test class and store default ftp server port."""
-        super(TelnetServerTest, self).__init__(methodName=methodName)
-        self.host = 'localhost'
+        super().__init__(methodName=methodName)
+        self.host = "localhost"
         self.port = None
         self.stop_event = threading.Event()
         self.server_thread = None
@@ -40,14 +40,14 @@ class TelnetServerTest (LinkCheckTest):
     def get_url(self, user=None, password=None):
         if user is not None:
             if password is not None:
-                netloc = u"%s:%s@%s" % (user, password, self.host)
+                netloc = "%s:%s@%s" % (user, password, self.host)
             else:
-                netloc = u"%s@%s" % (user, self.host)
+                netloc = "%s@%s" % (user, self.host)
         else:
             netloc = self.host
-        return u"telnet://%s:%d" % (netloc, self.port)
+        return "telnet://%s:%d" % (netloc, self.port)
 
-    def setUp (self):
+    def setUp(self):
         """Start a new Telnet server in a new thread."""
         self.port, self.server_thread = start_server(self.host, 0, self.stop_event)
         self.assertFalse(self.port is None)
@@ -60,12 +60,14 @@ class TelnetServerTest (LinkCheckTest):
             assert not self.server_thread.is_alive()
 
 
-def start_server (host, port, stop_event):
+def start_server(host, port, stop_event):
     # Instantiate Telnet server class and listen to host:port
     clients = []
+
     def on_connect(client):
         clients.append(client)
         client.send("Telnet test server\nlogin: ")
+
     server = miniboa.TelnetServer(port=port, address=host, on_connect=on_connect)
     port = server.server_socket.getsockname()[1]
     t = threading.Thread(None, serve_forever, args=(server, clients, stop_event))
@@ -79,7 +81,7 @@ def start_server (host, port, stop_event):
             client.open(host, port)
             client.write(b"exit\n")
             break
-        except:
+        except Exception:
             time.sleep(0.5)
     return port, t
 
@@ -98,7 +100,7 @@ def serve_forever(server, clients, stop_event):
 def handle_cmd(client):
     """Handle telnet clients."""
     msg = client.get_command().lower()
-    if msg == 'exit':
+    if msg == "exit":
         client.active = False
     else:
         client.send("Password: ")

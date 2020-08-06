@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -20,21 +19,14 @@ Main function module for link checking.
 
 # version checks
 import sys
-# Needs Python >= 2.7 because we use dictionary based logging config
-# Needs Python >= 2.7.2 which fixed http://bugs.python.org/issue11467
-if not (hasattr(sys, 'version_info') or
-        sys.version_info < (2, 7, 2, 'final', 0)):
+
+if sys.version_info < (3, 5, 0, 'final', 0):
     import platform
-    version = platform.python_version()
-    raise SystemExit("This program requires Python 2.7.2 or later instead of %s." % version)
-# require a reasonably recent requests module: 2.4.0 from 2014-08-29
-import requests
-# PEP 396 has only version strings, bummer! PEP 386 is also not helpful.
-requests_version = requests.__version__.split('.')
-# Depends on the version scheme of Python requests
-if int(requests_version[0]) < 2 or \
-   (int(requests_version[0]) == 2 and int(requests_version[1]) < 4):
-    raise SystemExit("This program requires Python requests 2.4.0 or later instead of %s." % requests.__version__)
+
+    raise SystemExit(
+        "This program requires Python 3.5.0 or later instead of %s."
+        % platform.python_version()
+    )
 
 import os
 import re
@@ -53,14 +45,15 @@ from .logconf import (
 import _LinkChecker_configdata as configdata
 
 
-def module_path ():
+def module_path():
     """Return absolute directory of system executable."""
     return os.path.dirname(os.path.abspath(sys.executable))
 
 
-def get_install_data ():
+def get_install_data():
     """Return absolute path of LinkChecker data installation directory."""
     from .loader import is_frozen
+
     if is_frozen():
         return module_path()
     return configdata.install_data
@@ -68,14 +61,17 @@ def get_install_data ():
 
 class LinkCheckerError(Exception):
     """Exception to be raised on linkchecker-specific check errors."""
+
     pass
+
 
 class LinkCheckerInterrupt(Exception):
     """Used for testing."""
+
     pass
 
 
-def get_link_pat (arg, strict=False):
+def get_link_pat(arg, strict=False):
     """Get a link pattern matcher for intern/extern links.
     Returns a compiled pattern and a negate and strict option.
 
@@ -106,7 +102,7 @@ def get_link_pat (arg, strict=False):
     }
 
 
-def init_i18n (loc=None):
+def init_i18n(loc=None):
     """Initialize i18n with the configured locale dir. The environment
     variable LOCPATH can also specify a locale dir.
 
@@ -119,6 +115,7 @@ def init_i18n (loc=None):
     i18n.init(configdata.name.lower(), locdir, loc=loc)
     # install translated log level names
     import logging
+
     logging.addLevelName(logging.CRITICAL, _('CRITICAL'))
     logging.addLevelName(logging.ERROR, _('ERROR'))
     logging.addLevelName(logging.WARN, _('WARN'))
@@ -132,20 +129,27 @@ def init_i18n (loc=None):
 init_i18n()
 
 
-def drop_privileges ():
+def drop_privileges():
     """Make sure to drop root privileges on POSIX systems."""
     if os.name != 'posix':
         return
     if os.geteuid() == 0:
-        log.warn(LOG_CHECK, _("Running as root user; "
-                       "dropping privileges by changing user to nobody."))
+        log.warn(
+            LOG_CHECK,
+            _(
+                "Running as root user; "
+                "dropping privileges by changing user to nobody."
+            ),
+        )
         import pwd
+
         os.seteuid(pwd.getpwnam('nobody')[3])
 
 
 if hasattr(signal, "SIGUSR1"):
     # install SIGUSR1 handler
     from .decorators import signal_handler
+
     @signal_handler(signal.SIGUSR1)
     def print_threadstacks(sig, frame):
         """Print stack traces of all running threads."""
@@ -153,7 +157,9 @@ if hasattr(signal, "SIGUSR1"):
         for threadId, stack in sys._current_frames().items():
             log.warn(LOG_THREAD, "# ThreadID: %s" % threadId)
             for filename, lineno, name, line in traceback.extract_stack(stack):
-                log.warn(LOG_THREAD, 'File: "%s", line %d, in %s' % (filename, lineno, name))
+                log.warn(
+                    LOG_THREAD, 'File: "%s", line %d, in %s' % (filename, lineno, name)
+                )
                 line = line.strip()
                 if line:
                     log.warn(LOG_THREAD, "  %s" % line)

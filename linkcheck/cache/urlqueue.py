@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -25,20 +24,24 @@ from .. import log, LOG_CACHE
 
 class Timeout(Exception):
     """Raised by join()"""
+
     pass
+
 
 class Empty(Exception):
     """Exception raised by get()."""
+
     pass
 
 
 NUM_PUTS_CLEANUP = 10000
 
-class UrlQueue (object):
+
+class UrlQueue:
     """A queue supporting several consumer tasks. The task_done() idea is
     from the Python 2.5 implementation of Queue.Queue()."""
 
-    def __init__ (self, max_allowed_urls=None):
+    def __init__(self, max_allowed_urls=None):
         """Initialize the queue state and task counters."""
         # Note: don't put a maximum size on the queue since it would
         # lead to deadlocks when all worker threads called put().
@@ -59,35 +62,37 @@ class UrlQueue (object):
         # Each put() decreases the number of allowed puts.
         # This way we can restrict the number of URLs that are checked.
         if max_allowed_urls is not None and max_allowed_urls <= 0:
-            raise ValueError("Non-positive number of allowed URLs: %d" % max_allowed_urls)
+            raise ValueError(
+                "Non-positive number of allowed URLs: %d" % max_allowed_urls
+            )
         self.max_allowed_urls = max_allowed_urls
         self.num_puts = 0
 
-    def qsize (self):
+    def qsize(self):
         """Return the approximate size of the queue (not reliable!)."""
         with self.mutex:
             return len(self.queue)
 
-    def empty (self):
+    def empty(self):
         """Return True if the queue is empty, False otherwise.
         Result is thread-safe, but not reliable since the queue could have
         been changed before the result is returned!"""
         with self.mutex:
             return self._empty()
 
-    def _empty (self):
+    def _empty(self):
         """Return True if the queue is empty, False otherwise.
         Not thread-safe!"""
         return not self.queue
 
-    def get (self, timeout=None):
+    def get(self, timeout=None):
         """Get first not-in-progress url from the queue and
         return it. If no such url is available return None.
         """
         with self.not_empty:
             return self._get(timeout)
 
-    def _get (self, timeout):
+    def _get(self, timeout):
         """Non thread-safe utility function of self.get() doing the real
         work."""
         if timeout is None:
@@ -105,7 +110,7 @@ class UrlQueue (object):
         self.in_progress += 1
         return self.queue.popleft()
 
-    def put (self, item):
+    def put(self, item):
         """Put an item into the queue.
         Block if necessary until a free slot is available.
         """
@@ -113,7 +118,7 @@ class UrlQueue (object):
             self._put(item)
             self.not_empty.notify()
 
-    def _put (self, url_data):
+    def _put(self, url_data):
         """Put URL in queue, increase number of unfinished tasks."""
         if self.shutdown or self.max_allowed_urls == 0:
             return
@@ -133,7 +138,8 @@ class UrlQueue (object):
                 self.cleanup()
             self.queue.append(url_data)
         self.unfinished_tasks += 1
-        cache.add_result(key, None)  # add none value to cache to prevent checking this url multiple times
+        # add none value to cache to prevent checking this url multiple times
+        cache.add_result(key, None)
 
     def cleanup(self):
         """Move cached elements to top."""
@@ -155,7 +161,7 @@ class UrlQueue (object):
             self.queue.rotate(pos)
             self.queue.appendleft(item)
 
-    def task_done (self, url_data):
+    def task_done(self, url_data):
         """
         Indicate that a formerly enqueued task is complete.
 
@@ -180,7 +186,7 @@ class UrlQueue (object):
                     raise ValueError('task_done() called too many times')
                 self.all_tasks_done.notifyAll()
 
-    def join (self, timeout=None):
+    def join(self, timeout=None):
         """Blocks until all items in the Queue have been gotten and processed.
 
         The count of unfinished tasks goes up whenever an item is added to the
@@ -203,7 +209,7 @@ class UrlQueue (object):
                         raise Timeout()
                     self.all_tasks_done.wait(remaining)
 
-    def do_shutdown (self):
+    def do_shutdown(self):
         """Shutdown the queue by not accepting any more URLs."""
         with self.mutex:
             unfinished = self.unfinished_tasks - len(self.queue)
@@ -215,7 +221,7 @@ class UrlQueue (object):
             self.unfinished_tasks = unfinished
             self.shutdown = True
 
-    def status (self):
+    def status(self):
         """Get tuple (finished tasks, in progress, queue size)."""
         # no need to acquire self.mutex since the numbers are unreliable anyways.
         return (self.finished_tasks, self.in_progress, len(self.queue))

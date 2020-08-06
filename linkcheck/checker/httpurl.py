@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,43 +16,56 @@
 """
 Handle http links.
 """
-from bs4 import BeautifulSoup
+
+import urllib.parse
+
 import requests
+
 # The validity of SSL certs is ignored to be able
 # the check the URL and recurse into it.
 # The warning about invalid SSL certs is given to the
 # user instead.
 import warnings
-warnings.simplefilter('ignore', requests.packages.urllib3.exceptions.InsecureRequestWarning)
+
+warnings.simplefilter(
+    'ignore', requests.packages.urllib3.exceptions.InsecureRequestWarning
+)
 
 from io import BytesIO
+import re
 
-from .. import (log, LOG_CHECK, strformat, mimeutil,
-    url as urlutil, LinkCheckerError, httputil)
-from . import (internpaturl, proxysupport)
-from ..HtmlParser import htmlsax
-from ..htmlutil import linkparse
+from .. import (
+    log,
+    LOG_CHECK,
+    mimeutil,
+    url as urlutil,
+    LinkCheckerError,
+    httputil,
+)
+from . import internpaturl, proxysupport
+
 # import warnings
-from .const import WARN_HTTP_EMPTY_CONTENT
+from .const import WARN_HTTP_EMPTY_CONTENT, WARN_URL_RATE_LIMITED
 from requests.sessions import REDIRECT_STATI
 
 # assumed HTTP header encoding
 HEADER_ENCODING = "iso-8859-1"
 HTTP_SCHEMAS = ('http://', 'https://')
 
-# helper alias
-unicode_safe = strformat.unicode_safe
+# match for robots meta element content attribute
+nofollow_re = re.compile(r"\bnofollow\b", re.IGNORECASE)
 
-class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
+
+class HttpUrl(internpaturl.InternPatternUrl, proxysupport.ProxySupport):
     """
     Url link with http scheme.
     """
 
-    def reset (self):
+    def reset(self):
         """
         Initialize HTTP specific variables.
         """
-        super(HttpUrl, self).reset()
+        super().reset()
         # initialize check data
         # server headers
         self.headers = {}
@@ -61,7 +73,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         self.ssl_cipher = None
         self.ssl_cert = None
 
-    def allows_robots (self, url):
+    def allows_robots(self, url):
         """
         Fetch and parse the robots.txt of given url. Checks if LinkChecker
         can get the requested resource content.
@@ -71,45 +83,40 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         @return: True if access is granted, otherwise False
         @rtype: bool
         """
-        return not self.aggregate.config['robotstxt'] or self.aggregate.robots_txt.allows_url(self)
+        return not self.aggregate.config[
+            'robotstxt'
+        ] or self.aggregate.robots_txt.allows_url(
+            self, timeout=self.aggregate.config["timeout"]
+        )
 
-    def content_allows_robots (self):
+    def content_allows_robots(self):
         """
         Return False if the content of this URL forbids robots to
         search for recursive links.
         """
         if not self.is_html():
             return True
-        # construct parser object
-        handler = linkparse.MetaRobotsFinder()
-        parser = htmlsax.parser(handler)
-        handler.parser = parser
-        # parse
-        try:
-            parser.feed_soup(self.get_soup())
-            parser.flush()
-        except linkparse.StopParse as msg:
-            log.debug(LOG_CHECK, "Stopped parsing: %s", msg)
-            pass
-        # break cyclic dependencies
-        handler.parser = None
-        parser.handler = None
-        return handler.follow
 
-    def add_size_info (self):
+        soup = self.get_soup()
+        return not soup.find("meta", attrs={"name": "robots", "content": nofollow_re})
+
+    def add_size_info(self):
         """Get size of URL content from HTTP header."""
-        if self.headers and "Content-Length" in self.headers and \
-           "Transfer-Encoding" not in self.headers:
+        if (
+            self.headers
+            and "Content-Length" in self.headers
+            and "Transfer-Encoding" not in self.headers
+        ):
             # Note that content-encoding causes size differences since
             # the content data is always decoded.
             try:
-                self.size = int(self.getheader("Content-Length"))
+                self.size = int(self.headers["Content-Length"])
             except (ValueError, OverflowError):
                 pass
         else:
             self.size = -1
 
-    def check_connection (self):
+    def check_connection(self):
         """
         Check a URL with HTTP protocol.
         Here is an excerpt from RFC 1945 with common response codes:
@@ -148,14 +155,9 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
     def build_request(self):
         """Build a prepared request object."""
         clientheaders = {}
-        if (self.parent_url and
-            self.parent_url.lower().startswith(HTTP_SCHEMAS)):
+        if self.parent_url and self.parent_url.lower().startswith(HTTP_SCHEMAS):
             clientheaders["Referer"] = self.parent_url
-        kwargs = dict(
-            method='GET',
-            url=self.url,
-            headers=clientheaders,
-        )
+        kwargs = dict(method='GET', url=self.url, headers=clientheaders)
         if self.auth:
             kwargs['auth'] = self.auth
         log.debug(LOG_CHECK, "Prepare request with %s", kwargs)
@@ -177,6 +179,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         self.url_connection = self.session.send(request, **kwargs)
         self.headers = self.url_connection.headers
         self.encoding = self.url_connection.encoding
+        log.debug(LOG_CHECK, "Response encoding %s", self.encoding)
         self._add_ssl_info()
 
     def _add_response_info(self):
@@ -186,7 +189,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
 
     def _get_ssl_sock(self):
         """Get raw SSL socket."""
-        assert self.scheme == u"https", self
+        assert self.scheme == "https", self
         raw_connection = self.url_connection.raw._connection
         if not raw_connection:
             # this happens with newer requests versions:
@@ -200,7 +203,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
 
     def _add_ssl_info(self):
         """Add SSL cipher info."""
-        if self.scheme == u'https':
+        if self.scheme == 'https':
             sock = self._get_ssl_sock()
             if not sock:
                 log.debug(LOG_CHECK, "cannot extract SSL certificate from connection")
@@ -215,7 +218,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         else:
             self.ssl_cert = None
 
-    def construct_auth (self):
+    def construct_auth(self):
         """Construct HTTP Basic authentication credentials if there
         is user/password information available. Does not overwrite if
         credentials have already been constructed."""
@@ -225,14 +228,16 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         if _user is not None and _password is not None:
             self.auth = (_user, _password)
 
-    def set_content_type (self):
+    def set_content_type(self):
         """Return content MIME type or empty string."""
         self.content_type = httputil.get_content_type(self.headers)
 
     def is_redirect(self):
         """Check if current response is a redirect."""
-        return ('location' in self.headers and
-                self.url_connection.status_code in REDIRECT_STATI)
+        return (
+            'location' in self.headers
+            and self.url_connection.status_code in REDIRECT_STATI
+        )
 
     def get_request_kwargs(self):
         """Construct keyword parameters for Session.request() and
@@ -240,7 +245,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         kwargs = dict(stream=True, timeout=self.aggregate.config["timeout"])
         if self.proxy:
             kwargs["proxies"] = {self.proxytype: self.proxy}
-        if self.scheme == u"https" and self.aggregate.config["sslverify"]:
+        if self.scheme == "https" and self.aggregate.config["sslverify"]:
             kwargs['verify'] = self.aggregate.config["sslverify"]
         else:
             kwargs['verify'] = False
@@ -249,8 +254,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
     def get_redirects(self, request):
         """Return iterator of redirects for given request."""
         kwargs = self.get_request_kwargs()
-        return self.session.resolve_redirects(self.url_connection,
-            request, **kwargs)
+        return self.session.resolve_redirects(self.url_connection, request, **kwargs)
 
     def follow_redirections(self, request):
         """Follow all redirections of http response."""
@@ -268,7 +272,7 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
             # Reset extern and recalculate
             self.extern = None
             self.set_extern(newurl)
-            self.urlparts = strformat.url_unicode_split(newurl)
+            self.urlparts = list(urllib.parse.urlsplit(newurl))
             self.build_url_parts()
             self.url_connection = response
             self.headers = response.headers
@@ -280,39 +284,40 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
                 # run connection plugins for old connection
                 self.aggregate.plugin_manager.run_connection_plugins(self)
 
-    def getheader (self, name, default=None):
-        """Get decoded header value.
-
-        @return: decoded header value or default of not found
-        @rtype: unicode or type of default
-        """
-        value = self.headers.get(name)
-        if value is None:
-            return default
-        return unicode_safe(value, encoding=HEADER_ENCODING)
-
-    def check_response (self):
+    def check_response(self):
         """Check final result and log it."""
-        if self.url_connection.status_code >= 400:
-            self.set_result(u"%d %s" % (self.url_connection.status_code, self.url_connection.reason),
-                            valid=False)
+        if (
+            self.url_connection.status_code >= 400
+            and self.url_connection.status_code != 429
+        ):
+            self.set_result(
+                "%d %s" % (self.url_connection.status_code, self.url_connection.reason),
+                valid=False,
+            )
         else:
             if self.url_connection.status_code == 204:
                 # no content
-                self.add_warning(self.url_connection.reason,
-                                 tag=WARN_HTTP_EMPTY_CONTENT)
+                self.add_warning(
+                    self.url_connection.reason, tag=WARN_HTTP_EMPTY_CONTENT
+                )
+
+            if self.url_connection.status_code == 429:
+                self.add_warning(
+                    "Rate limited (Retry-After: %s)"
+                    % self.headers.get(_("Retry-After")),
+                    tag=WARN_URL_RATE_LIMITED,
+                )
+
             if self.url_connection.status_code >= 200:
-                self.set_result(u"%r %s" % (self.url_connection.status_code, self.url_connection.reason))
+                self.set_result(
+                    "%r %s"
+                    % (self.url_connection.status_code, self.url_connection.reason)
+                )
             else:
                 self.set_result(_("OK"))
 
     def get_content(self):
-        if self.text is None:
-            self.get_raw_content()
-            self.soup = BeautifulSoup(self.data, "html.parser",
-                                      from_encoding=self.encoding)
-            self.text = self.data.decode(self.soup.original_encoding)
-        return self.text
+        return super().get_content(self.encoding)
 
     def read_content(self):
         """Return data and data size for this URL.
@@ -329,22 +334,23 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
         """Parse URLs in HTTP headers Link:."""
         for linktype, linkinfo in self.url_connection.links.items():
             url = linkinfo["url"]
-            name = u"Link: header %s" % linktype
+            name = "Link: header %s" % linktype
             self.add_url(url, name=name)
         if 'Refresh' in self.headers:
             from ..htmlutil.linkparse import refresh_re
+
             value = self.headers['Refresh'].strip()
             mo = refresh_re.match(value)
             if mo:
-                url = unicode_safe(mo.group("url"))
-                name = u"Refresh: header"
+                url = mo.group("url")
+                name = "Refresh: header"
                 self.add_url(url, name=name)
         if 'Content-Location' in self.headers:
             url = self.headers['Content-Location'].strip()
-            name = u"Content-Location: header"
+            name = "Content-Location: header"
             self.add_url(url, name=name)
 
-    def is_parseable (self):
+    def is_parseable(self):
         """
         Check if content is parseable for recursion.
 
@@ -360,11 +366,15 @@ class HttpUrl (internpaturl.InternPatternUrl, proxysupport.ProxySupport):
                 # XXX side effect
                 self.content_type = rtype
         if self.content_type not in self.ContentMimetypes:
-            log.debug(LOG_CHECK, "URL with content type %r is not parseable", self.content_type)
+            log.debug(
+                LOG_CHECK,
+                "URL with content type %r is not parseable",
+                self.content_type,
+            )
             return False
         return True
 
-    def get_robots_txt_url (self):
+    def get_robots_txt_url(self):
         """
         Get the according robots.txt URL for this URL.
 

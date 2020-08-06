@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2014 Bastian Kleineidam
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,7 +22,7 @@ def run_with_options(options, cmd=linkchecker_cmd):
     run_checked([sys.executable, cmd] + options)
 
 
-class TestLinkchecker (unittest.TestCase):
+class TestLinkchecker(unittest.TestCase):
     """Test the linkchecker commandline client."""
 
     def test_linkchecker(self):
@@ -31,4 +30,4 @@ class TestLinkchecker (unittest.TestCase):
         for option in ("-V", "--version", "-h", "--help", "--list-plugins", "-Dall"):
             run_with_options([option])
         # unknown option
-        self.assertRaises(OSError, run_with_options, ['--imadoofus'])
+        self.assertRaises(OSError, run_with_options, ["--imadoofus"])

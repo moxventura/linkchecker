@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2005-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,7 +17,7 @@ import base64
 from datetime import datetime
 
 
-def encode_base64 (s):
+def encode_base64(s):
     """Encode given string in base64, excluding trailing newlines."""
     return base64.b64encode(s)
 
@@ -28,14 +27,10 @@ def x509_to_dict(x509):
     subject, subjectAltName and optional notAfter.
     """
     from requests.packages.urllib3.contrib.pyopenssl import get_subj_alt_name
+
     res = {
-            'subject': (
-                (('commonName', x509.get_subject().CN),),
-            ),
-            'subjectAltName': [
-                ('DNS', value)
-                for value in get_subj_alt_name(x509)
-            ]
+        'subject': ((('commonName', x509.get_subject().CN),),),
+        'subjectAltName': [('DNS', value) for value in get_subj_alt_name(x509)]
     }
     notAfter = x509.get_notAfter()
     if notAfter is not None:
@@ -69,23 +64,8 @@ def asn1_generaltime_to_seconds(timestr):
             pass
     return res
 
-def has_header_value (headers, name, value):
-    """
-    Look in headers for a specific header name and value.
-    Both name and value are case insensitive.
 
-    @return: True if header name and value are found
-    @rtype: bool
-    """
-    name = name.lower()
-    value = value.lower()
-    for hname, hvalue in headers:
-        if hname.lower()==name and hvalue.lower()==value:
-            return True
-    return False
-
-
-def get_content_type (headers):
+def get_content_type(headers):
     """
     Get the MIME type from the Content-Type header value, or
     'application/octet-stream' if not found.

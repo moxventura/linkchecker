@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2004-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -19,7 +18,6 @@ Test https.
 """
 from OpenSSL import crypto
 
-from tests import need_network
 from .httpserver import HttpsServerTest, CookieRedirectHttpRequestHandler
 from .. import get_file
 
@@ -31,8 +29,8 @@ class TestHttps(HttpsServerTest):
     Test https: link checking.
     """
 
-    def __init__(self, methodName='runTest'):
-        super(TestHttps, self).__init__(methodName=methodName)
+    def __init__(self, methodName="runTest"):
+        super().__init__(methodName=methodName)
         self.handler = CookieRedirectHttpRequestHandler
 
     @classmethod
@@ -46,28 +44,26 @@ class TestHttps(HttpsServerTest):
         cert.set_notAfter(b"21190102030405Z")
         cert.set_issuer(cert.get_subject())
         cert.set_pubkey(key)
-        cert.sign(key, 'sha1')
+        cert.sign(key, "sha1")
         with open(get_file("https_key.pem"), "wb") as f:
             f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
         with open(get_file("https_cert.pem"), "wb") as f:
             f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
 
-    @need_network
-    def test_https (self):
+    def test_https(self):
         url = self.get_url("")
         resultlines = [
-            u"url %s" % url,
-            u"cache key %s" % url,
-            u"real url %s" % url,
-            u"valid",
+            "url %s" % url,
+            "cache key %s" % url,
+            "real url %s" % url,
+            "valid",
         ]
-        confargs = dict(
-            sslverify=False
-        )
+        confargs = dict(sslverify=False)
         self.direct(url, resultlines, recursionlevel=0, confargs=confargs)
 
     def test_x509_to_dict(self):
         with open(get_file("https_cert.pem"), "rb") as f:
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, f.read())
-        self.assertEqual(httputil.x509_to_dict(cert)["notAfter"],
-                         "Jan 02 03:04:05 2119 GMT")
+        self.assertEqual(
+            httputil.x509_to_dict(cert)["notAfter"], "Jan 02 03:04:05 2119 GMT"
+        )

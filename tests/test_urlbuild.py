@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2004-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -25,50 +24,49 @@ import linkcheck.checker.urlbase
 from linkcheck.checker import get_url_from
 
 
-def get_test_aggregate ():
+def get_test_aggregate():
     """
     Initialize a test configuration object.
     """
     config = linkcheck.configuration.Configuration()
-    config['logger'] = config.logger_new('none')
+    config["logger"] = config.logger_new("none")
     return linkcheck.director.get_aggregate(config)
 
 
-class TestUrlBuild (unittest.TestCase):
+class TestUrlBuild(unittest.TestCase):
     """
     Test url building.
     """
 
-    def test_http_build (self):
+    def test_http_build(self):
         parent_url = "http://localhost:8001/tests/checker/data/http.html"
         base_url = "http://foo"
         recursion_level = 0
         aggregate = get_test_aggregate()
         o = get_url_from(base_url, recursion_level, aggregate, parent_url=parent_url)
         o.build_url()
-        self.assertEqual(o.url, u'http://foo')
+        self.assertEqual(o.url, "http://foo")
 
-    def test_urljoin (self):
+    def test_urljoin(self):
         parent_url = "http://localhost:8001/test"
         base_url = ";param=value"
         res = linkcheck.checker.urlbase.urljoin(parent_url, base_url)
-        self.assertEqual(res, 'http://localhost:8001/;param=value')
+        self.assertEqual(res, "http://localhost:8001/;param=value")
 
-    def test_urljoin_file (self):
+    def test_urljoin_file(self):
         parent_url = "file:///a/b.html"
         base_url = "?c=d"
         recursion_level = 0
         aggregate = get_test_aggregate()
-        o = get_url_from(base_url, recursion_level,
-               aggregate, parent_url=parent_url)
+        o = get_url_from(base_url, recursion_level, aggregate, parent_url=parent_url)
         o.build_url()
         self.assertEqual(o.url, parent_url)
 
-    def test_http_build2 (self):
-        parent_url = u'http://example.org/test?a=b&c=d'
-        base_url = u'#usemap'
+    def test_http_build2(self):
+        parent_url = "http://example.org/test?a=b&c=d"
+        base_url = "#usemap"
         recursion_level = 0
         aggregate = get_test_aggregate()
         o = get_url_from(base_url, recursion_level, aggregate, parent_url=parent_url)
         o.build_url()
-        self.assertEqual(o.url, parent_url+base_url)
+        self.assertEqual(o.url, parent_url + base_url)

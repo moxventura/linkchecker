@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Copyright (C) 2000-2014 Bastian Kleineidam
 #
 # This program is free software; you can redistribute it and/or modify
@@ -42,20 +41,18 @@ lognamelist = ", ".join(repr(name) for name in lognames)
 # logging configuration
 configdict = {
     'version': 1,
-    'loggers': {
-    },
-    'root': {
-      'level': 'WARN',
-    },
+    'loggers': {},
+    'root': {'level': 'WARN'},
     'incremental': True,
 }
+
 
 def init_log_config(handler=None):
     """Set up the application logging (not to be confused with check loggers).
     """
     for applog in lognames.values():
         # propagate except for root app logger 'linkcheck'
-        propagate = (applog != LOG_ROOT)
+        propagate = applog != LOG_ROOT
         configdict['loggers'][applog] = dict(level='INFO', propagate=propagate)
 
     logging.config.dictConfig(configdict)
@@ -64,7 +61,7 @@ def init_log_config(handler=None):
     add_loghandler(handler)
 
 
-def add_loghandler (handler):
+def add_loghandler(handler):
     """Add log handler to root logger and LOG_ROOT and set formatting."""
     format = "%(levelname)s %(name)s %(asctime)s %(threadName)s %(message)s"
     handler.setFormatter(logging.Formatter(format))
@@ -72,7 +69,7 @@ def add_loghandler (handler):
     logging.getLogger().addHandler(handler)
 
 
-def remove_loghandler (handler):
+def remove_loghandler(handler):
     """Remove log handler from root logger and LOG_ROOT."""
     logging.getLogger(LOG_ROOT).removeHandler(handler)
     logging.getLogger().removeHandler(handler)
@@ -87,8 +84,8 @@ def set_debug(loggers):
     """Set debugging log level."""
     set_loglevel(loggers, logging.DEBUG)
     # enable for httplib debugging (used by requests.packages.urllib3)
-    #import httplib
-    #httplib.HTTPConnection.debuglevel = 1
+    # import httplib
+    # httplib.HTTPConnection.debuglevel = 1
 
 
 def set_loglevel(loggers, level):

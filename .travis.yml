@@ -8,11 +8,21 @@ jobs:
   include:
     - python: "3.5"
       env: TOXENV=oldbs4
+    - name: flake8
+      env: TOXENV=flake8
+      before_script:
+      after_success:
+    - name: check-manifest
+      env: TOXENV=check-manifest
+      before_script:
+      after_success:
 # command to install dependencies
 addons:
   apt:
     packages:
       - clamav-daemon
+      - geoip-database
+      - libgeoip-dev
 install:
   - pip install tox-travis coveralls
 before_script:
